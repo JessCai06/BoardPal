@@ -1,29 +1,73 @@
-from ursina import *
+from stl import mesh
+import math
+import numpy
 
-app = Ursina()
+# Create 3 faces of a cube
+data = numpy.zeros(6, dtype=mesh.Mesh.dtype)
 
-# Define vertices for a cube
-vertices = [
-    [-1, -1, -1],  # Bottom-left-back  (0)
-    [1, -1, -1],   # Bottom-right-back (1)
-    [1, 1, -1],    # Top-right-back    (2)
-    [-1, 1, -1],   # Top-left-back     (3)
-    [-1, -1, 1],   # Bottom-left-front (4)
-    [1, -1, 1],    # Bottom-right-front(5)
-    [1, 1, 1],     # Top-right-front   (6)
-    [-1, 1, 1],    # Top-left-front    (7)
-]
+# Top of the cube
+data['vectors'][0] = numpy.array([[0, 1, 1],
+                                  [1, 0, 1],
+                                  [0, 0, 1]])
+data['vectors'][1] = numpy.array([[1, 0, 1],
+                                  [0, 1, 1],
+                                  [1, 1, 1]])
+# Front face
+data['vectors'][2] = numpy.array([[1, 0, 0],
+                                  [1, 0, 1],
+                                  [1, 1, 0]])
+data['vectors'][3] = numpy.array([[1, 1, 1],
+                                  [1, 0, 1],
+                                  [1, 1, 0]])
+# Left face
+data['vectors'][4] = numpy.array([[0, 0, 0],
+                                  [1, 0, 0],
+                                  [1, 0, 1]])
+data['vectors'][5] = numpy.array([[0, 0, 0],
+                                  [0, 0, 1],
+                                  [1, 0, 1]])
 
-# Define triangles for a cube
-triangles = [
-    [0, 1, 2, 3], [3,2,1,0],  # Back face
-]
+# Since the cube faces are from 0 to 1 we can move it to the middle by
+# substracting .5
+data['vectors'] -= .5
 
-# Create the mesh with the cube vertices and triangles
-mesh = Mesh(vertices=vertices, triangles=triangles, mode='triangle')
+# Generate 4 different meshes so we can rotate them later
+meshes = [mesh.Mesh(data.copy()) for _ in range(4)]
 
-# Create the entity and set up the camera
-entity = Entity(model=mesh)
-EditorCamera()
+# Rotate 90 degrees over the Y axis
+meshes[0].rotate([0.0, 0.5, 0.0], math.radians(90))
 
-app.run()
+# Translate 2 points over the X axis
+meshes[1].x += 2
+
+# Rotate 90 degrees over the X axis
+meshes[2].rotate([0.5, 0.0, 0.0], math.radians(90))
+# Translate 2 points over the X and Y points
+meshes[2].x += 2
+meshes[2].y += 2
+
+# Rotate 90 degrees over the X and Y axis
+meshes[3].rotate([0.5, 0.0, 0.0], math.radians(90))
+meshes[3].rotate([0.0, 0.5, 0.0], math.radians(90))
+# Translate 2 points over the Y axis
+meshes[3].y += 2
+
+
+# Optionally render the rotated cube faces
+from matplotlib import pyplot
+from mpl_toolkits import mplot3d
+
+# Create a new plot
+figure = pyplot.figure()
+axes = figure.add_subplot(projection='3d')
+
+# Render the cube faces
+for m in meshes:
+    axes.add_collection3d(mplot3d.art3d.Poly3DCollection(m.vectors))
+
+# Auto scale to the mesh size
+scale = numpy.concatenate([m.points for m in meshes]).flatten()
+axes.auto_scale_xyz(scale, scale, scale)
+
+# Show the plot to the screen
+pyplot.show()
