@@ -26,19 +26,11 @@ class FaceObject:
 
     def getEdges(self):
         edges = []
-        for i in range(len(self.order)):
-            edges.append(tuple(self.order[i], self.order[i+1]))
-            print(edges)
-        print("rest of order", self.order)
-        edges.append(tuple(self.order[0], self.order[-1]))
+        for i in range(len(self.order)-1):
+            line = (self.order[i], self.order[i+1])
+            edges.append(line)
+        edges.append((self.order[0], self.order[-1]))
         return edges
-
-    def getEdgePoints(self):
-        edges = self.getEdges()
-        edgePoints = []
-        for edge in edges:
-            edgePoints.append(self.points[edge[0]],self.points[edge[1]])
-        return edgePoints
 
     def __eq__(self, other):
         #if they have the same number of points (quad == triangle)
@@ -49,3 +41,7 @@ class FaceObject:
             if edge not in other.getEdgePoints():
                 return False
         return True
+
+    def __str__(self):
+        edges_str = ', '.join([f"({edge[0]}, {edge[1]})" for edge in self.getEdges()])
+        return f"FaceObject(index={self.index}, order={self.order}, edges=[{edges_str}])"

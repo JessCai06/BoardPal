@@ -5,10 +5,13 @@ import math
 import random
 
 def onAppStart(app):
-    app.camTheta = (0, 0, 0)
-    app.r = 50
-    app.center = (0,0,0)
 
+    app.editorMode = False
+    app.selectedDotIndex = -1
+    app.camTheta = (0, 0, 0)
+    app.r = 120
+    app.viewportCenter = (app.width/2,app.height/2)
+    app.editorWidth = 250
     baseSquare = [(-1, -1, 0), (-1, 1, 0), (1, 1, 0), (1, -1, 0), 
                   # 4           5           6           7
                   (-1, -1, 1), (-1, 1, 1), (1, 1, 1), (1, -1, 1)]
@@ -18,18 +21,30 @@ def onAppStart(app):
              [0,3,7,4],
              [1,2,6,5],
              [4,5,6,7]]
-    print(app.center)
-    app.cube = ShapeObject(app.center, baseSquare, order)
-    for face in app.cube.faces:
-        print(face.getEdges())
+    app.cube = ShapeObject((0,0,0), baseSquare, order)
+    app.viewport_point_List = []
+    updateViewport(app)
 
-# Helper methods
-def getRadiusEndpoint(cx, cy, r, theta):
-    return (cx + r * math.cos(math.radians(theta)),
-            cy - r * math.sin(math.radians(theta)))
+def updateViewport(app):
+    app.viewport_point_List = []
+    for i in range(len(app.cube.points)):
+        point = app.cube.points[i]
+        viewport_point = transformToViewport(app, point)
+        app.viewport_point_List.append(viewport_point)
 
-def distance(x1, y1, x2, y2):
-    return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+def distance(x0, y0, x1, y1):
+    return ((x1 - x0)**2 + (y1 - y0)**2)**0.5
+
+def onMousePress(app, mouseX, mouseY):
+    cx,cy = app.viewport_point_List[app.selectedDotIndex]
+    if distance(mouseX,mouseY,cx,cy) > 5:
+        for i in range(len(app.viewport_point_List)):
+            (x,y) = app.viewport_point_List[i]
+            if distance(mouseX,mouseY,x,y) < 5:
+                app.selectedDotIndex = i
+        (x,y) = app.dots[app.selectedDotIndex]
+        if distance(mouseX,mouseY,x,y) >= 5:
+            app.dots[app.selectedDotIndex] = (mouseX, mouseY)
 
 def transformToViewport(app, point):
     thetaX, thetaY, thetaZ = app.camTheta  # Unpack rotation angles
@@ -47,20 +62,43 @@ def transformToViewport(app, point):
     final_y = rotated_x * math.sin(math.radians(thetaX)) + rotated_y * math.cos(math.radians(thetaX))
 
     # Translate to the center of the screen for viewport
-    viewport_x = app.width/2 + final_x * app.r  # Scaling for visibility
-    viewport_y = app.height/2 + final_y * app.r
+    viewport_x = app.viewportCenter[0] + final_x * app.r  # Scaling for visibility
+    viewport_y = app.viewportCenter[1] + final_y * app.r
     return (viewport_x, viewport_y)
 
+def drawEditor(app):
+    drawRect(app.width-app.editorWidth,0,app.editorWidth,app.height,fill="powderBlue",opacity=80)
+    drawLabel("Editor", app.width-app.editorWidth + 100+ 20, 20,size = 30)
+    
 
 def redrawAll(app):
+    if app.editorMode:
+        drawEditor(app)
+        drawLabel("Editor Mode (press E to exit)",(app.width- app.editorWidth)/2, 20)
+    else:
+        drawLabel("Viewport Mode (press E to exit)",app.width/2, 20)
+
     #draw points
-    for point in app.cube.points:
-        viewport_point = transformToViewport(app, point)
-        drawCircle(viewport_point[0], viewport_point[1], 5, fill="red")
+    for i in range(len(app.viewport_point_List)):
+        point = app.viewport_point_List[i]
+        fill = "lightSalmon"
+        if i == app.selectedDotIndex:
+            fill = "red"
+        drawCircle(*point, 5, fill=fill)
     #draw lines
     for face in app.cube.faces:
-        for edge in face.getEdgePoints():
-            print ("line" , edge)
+        for edge in face.getEdges():
+            drawLine(*app.viewport_point_List[edge[0]],*app.viewport_point_List[edge[1]])
+
+def onKeyPress(app, key):
+    if key == "e":
+        app.editorMode = not app.editorMode
+        if app.editorMode:
+            app.viewportCenter = ((app.width-app.editorWidth)/2,app.height/2)
+        else:
+            app.viewportCenter = ((app.width)/2,app.height/2)
+    
+    updateViewport(app)
 
 def onKeyHold(app, key):
     thetaX, thetaY, thetaZ = app.camTheta  
@@ -76,13 +114,14 @@ def onKeyHold(app, key):
         app.camTheta = (thetaX, thetaY, (thetaZ + 2) % 360)
     elif "s" in key:
         app.camTheta = (thetaX, thetaY, (thetaZ - 2) % 360)
-
     if "+" in key or "=" in key:
         app.r += 10
     elif "-" in key or "_" in key:
         app.r -= 10
 
+    updateViewport(app)
+
 def main():
-    runApp(width=400, height=400)
+    runApp(width=1000, height=800)
 
 main()
