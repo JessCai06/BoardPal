@@ -2,19 +2,19 @@ from cmu_graphics import *
 from ShapeObject import ShapeObject
 from FaceObject import FaceObject
 import math
-import random
 
 def onAppStart(app):
 
     app.editorMode = False
-    app.selectedDotIndex = -1
+    app.selectedDotIndex = 0
     app.camTheta = (0, 0, 0)
+    app.graphCenter = (0,0)
     app.r = 120
     app.viewportCenter = (app.width/2,app.height/2)
     app.editorWidth = 250
     baseSquare = [(-1, -1, 0), (-1, 1, 0), (1, 1, 0), (1, -1, 0), 
                   # 4           5           6           7
-                  (-1, -1, 1), (-1, 1, 1), (1, 1, 1), (1, -1, 1)]
+                  (-1, -1, 2), (-1, 1, 2), (1, 1, 2), (1, -1, 2)]
     order = [[0,1,2,3],
              [0,1,5,4],
              [2,3,7,6],
@@ -37,14 +37,13 @@ def distance(x0, y0, x1, y1):
 
 def onMousePress(app, mouseX, mouseY):
     cx,cy = app.viewport_point_List[app.selectedDotIndex]
+    print(cx, cy)
     if distance(mouseX,mouseY,cx,cy) > 5:
         for i in range(len(app.viewport_point_List)):
             (x,y) = app.viewport_point_List[i]
             if distance(mouseX,mouseY,x,y) < 5:
                 app.selectedDotIndex = i
-        (x,y) = app.dots[app.selectedDotIndex]
-        if distance(mouseX,mouseY,x,y) >= 5:
-            app.dots[app.selectedDotIndex] = (mouseX, mouseY)
+        (x,y) = app.viewport_point_List[app.selectedDotIndex]
 
 def transformToViewport(app, point):
     thetaX, thetaY, thetaZ = app.camTheta  # Unpack rotation angles
@@ -69,15 +68,20 @@ def transformToViewport(app, point):
 def drawEditor(app):
     drawRect(app.width-app.editorWidth,0,app.editorWidth,app.height,fill="powderBlue",opacity=80)
     drawLabel("Editor", app.width-app.editorWidth + 100+ 20, 20,size = 30)
-    
+    drawLabel(app.cube.points[app.selectedDotIndex], app.width-app.editorWidth + 100+ 20, 100,size = 16)
+    selectedCoord = app.viewport_point_List[app.selectedDotIndex]
+    print(selectedCoord)
+    drawLine(*selectedCoord,  selectedCoord[0]+70,  selectedCoord[1], fill='Red',
+        lineWidth=6, dashes=False, opacity=80, rotateAngle=0,
+        visible=True, arrowStart=False, arrowEnd=True)
+    drawLine(*selectedCoord,  selectedCoord[0],  selectedCoord[1]-70, fill='Blue',
+        lineWidth=6, dashes=False, opacity=80, rotateAngle=0,
+        visible=True, arrowStart=False, arrowEnd=True)
+    drawLine(*selectedCoord,  selectedCoord[0]+60,  selectedCoord[1]-30, fill='green',
+        lineWidth=6, dashes=False, opacity=80, rotateAngle=0,
+        visible=True, arrowStart=False, arrowEnd=True)
 
 def redrawAll(app):
-    if app.editorMode:
-        drawEditor(app)
-        drawLabel("Editor Mode (press E to exit)",(app.width- app.editorWidth)/2, 20)
-    else:
-        drawLabel("Viewport Mode (press E to exit)",app.width/2, 20)
-
     #draw points
     for i in range(len(app.viewport_point_List)):
         point = app.viewport_point_List[i]
@@ -89,6 +93,12 @@ def redrawAll(app):
     for face in app.cube.faces:
         for edge in face.getEdges():
             drawLine(*app.viewport_point_List[edge[0]],*app.viewport_point_List[edge[1]])
+    
+    if app.editorMode:
+        drawEditor(app)
+        drawLabel("Editor Mode (press E to exit)",(app.width- app.editorWidth)/2, 20)
+    else:
+        drawLabel("Viewport Mode (press E to enter editor mode)",app.width/2, 20)
 
 def onKeyPress(app, key):
     if key == "e":
