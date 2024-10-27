@@ -6,7 +6,7 @@ class FaceObject:
     of the shape corresponding to user interaction 2) be able to connect logic
     to the graphic output of ursina.
     """
-    def __init__(self, points, order):
+    def __init__(self, i, points, order):
         """
         points is very important and delicate: this will be passed when creating a 
         ShapeObject. 
@@ -20,13 +20,16 @@ class FaceObject:
         will be read in from. 
         len(order) == the shape type (ie. 3 triangle, 4 rectangle, 5 etc)
         """
+        self.index = i
         self.points = points
         self.order = order
 
     def getEdges(self):
         edges = []
-        for i in range(len(self.order)-1):
+        for i in range(len(self.order)):
             edges.append(tuple(self.order[i], self.order[i+1]))
+            print(edges)
+        print("rest of order", self.order)
         edges.append(tuple(self.order[0], self.order[-1]))
         return edges
 

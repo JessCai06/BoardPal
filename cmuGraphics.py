@@ -5,10 +5,23 @@ import math
 import random
 
 def onAppStart(app):
-    app.baseSquare = [(-1, -1, 0), (1, 1, 0), (-1, 1, 0), (1, -1, 0), (1,1,1)]
-    app.Shape = ShapeObject()
     app.camTheta = (0, 0, 0)
     app.r = 50
+    app.center = (0,0,0)
+
+    baseSquare = [(-1, -1, 0), (-1, 1, 0), (1, 1, 0), (1, -1, 0), 
+                  # 4           5           6           7
+                  (-1, -1, 1), (-1, 1, 1), (1, 1, 1), (1, -1, 1)]
+    order = [[0,1,2,3],
+             [0,1,5,4],
+             [2,3,7,6],
+             [0,3,7,4],
+             [1,2,6,5],
+             [4,5,6,7]]
+    print(app.center)
+    app.cube = ShapeObject(app.center, baseSquare, order)
+    for face in app.cube.faces:
+        print(face.getEdges())
 
 # Helper methods
 def getRadiusEndpoint(cx, cy, r, theta):
@@ -17,16 +30,6 @@ def getRadiusEndpoint(cx, cy, r, theta):
 
 def distance(x1, y1, x2, y2):
     return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-
-def drawCameraNavigator(app):
-    box_size = 100
-    drawRect(app.width - box_size - 10, 10, box_size, box_size, opacity=10)
-    circle_radius = box_size / 2
-    drawCircle(app.width - box_size - 10 + circle_radius, 10 + circle_radius, circle_radius, opacity=10)
-    camera_location = getRadiusEndpoint(app.width - box_size - 10 + circle_radius, 10 + circle_radius, circle_radius, app.camThetaX)
-    drawCircle(*(camera_location), 3)
-    drawLine(app.width - box_size - 10, 10 + circle_radius, app.width - 10, 10 + circle_radius)
-    drawLine(app.width - box_size - 10 + circle_radius, 10, app.width - box_size - 10 + circle_radius, 10 + box_size)
 
 def transformToViewport(app, point):
     thetaX, thetaY, thetaZ = app.camTheta  # Unpack rotation angles
@@ -50,10 +53,14 @@ def transformToViewport(app, point):
 
 
 def redrawAll(app):
-    #drawCameraNavigator(app)
-    for point in app.baseSquare:
+    #draw points
+    for point in app.cube.points:
         viewport_point = transformToViewport(app, point)
         drawCircle(viewport_point[0], viewport_point[1], 5, fill="red")
+    #draw lines
+    for face in app.cube.faces:
+        for edge in face.getEdgePoints():
+            print ("line" , edge)
 
 def onKeyHold(app, key):
     thetaX, thetaY, thetaZ = app.camTheta  
@@ -69,8 +76,7 @@ def onKeyHold(app, key):
         app.camTheta = (thetaX, thetaY, (thetaZ + 2) % 360)
     elif "s" in key:
         app.camTheta = (thetaX, thetaY, (thetaZ - 2) % 360)
-    
-    print(key, app.r)
+
     if "+" in key or "=" in key:
         app.r += 10
     elif "-" in key or "_" in key:
