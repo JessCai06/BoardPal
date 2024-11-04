@@ -61,7 +61,6 @@ def onMousePress(app, mouseX, mouseY):
             app.viewportCenter = ((app.width)/2,app.height/2)
         #x y z input bars
         elif inputIdx[0] != -1:
-            app.inputBarSelect = inputIdx
             x,y,z = app.cube.points[app.selectedDotIndex]
             if inputIdx[0] == 0:
                 newPoint = (x + inputIdx[1], y,z)
@@ -70,6 +69,10 @@ def onMousePress(app, mouseX, mouseY):
             else:
                 newPoint = (x, y , z+ inputIdx[1])  
             app.cube.points[app.selectedDotIndex] = newPoint
+            print("Before rearrangeFaces:", app.cube.faces)
+            app.cube.rearrangeFaces()
+            print("After rearrangeFaces:", app.cube.faces)
+
             print((x,y,z), newPoint)
     else:
         if distance(mouseX, mouseY, app.width - 40, 30) <= 25:
@@ -146,19 +149,6 @@ def drawEditor(app):
         drawLabel(f"{selectedPoint[i]}", app.width - app.editorWidth + 150, 225 + i * button_margin, size=20, bold=True)
         drawCircle(app.width - app.editorWidth + 200, 225 + i * button_margin, 15, fill="lightGray", border="green")
         drawLabel("+", app.width - app.editorWidth + 200, 225 + i * button_margin, size=20, bold=True, fill="green")
-
-
-    
-    # #colored arrows
-    # drawLine(*selectedCoord,  selectedCoord[0]+70,  selectedCoord[1], fill='Red',
-    #     lineWidth=6, dashes=False, opacity=80, rotateAngle=0,
-    #     visible=True, arrowStart=False, arrowEnd=True)
-    # drawLine(*selectedCoord,  selectedCoord[0],  selectedCoord[1]-70, fill='Blue',
-    #     lineWidth=6, dashes=False, opacity=80, rotateAngle=0,
-    #     visible=True, arrowStart=False, arrowEnd=True)
-    # drawLine(*selectedCoord,  selectedCoord[0]+60,  selectedCoord[1]-30, fill='green',
-    #     lineWidth=6, dashes=False, opacity=80, rotateAngle=0,
-    #     visible=True, arrowStart=False, arrowEnd=True)
 
     coordList = ["X", "Y", "Z"]
     for button in range(3):
