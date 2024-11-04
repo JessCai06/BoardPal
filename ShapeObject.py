@@ -14,5 +14,14 @@ class ShapeObject:
             tempFace = FaceObject(i,self.points,face)
             self.faces.append(tempFace)
 
+    def getFaces(self, indexInPoints):
+        if indexInPoints < 0:
+            return -1
+        facesThisPointIsIn = []
+        for face in self.faces:
+            if indexInPoints in face.order:
+                facesThisPointIsIn.append(face.index)
+        return facesThisPointIsIn
 
-        
+    def replacePoint(self, indexInPoints, newPoint):
+        self.points[indexInPoints] = newPoint

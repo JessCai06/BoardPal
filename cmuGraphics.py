@@ -10,8 +10,13 @@ def onAppStart(app):
     app.camTheta = (0, 0, 0)
     app.graphCenter = (0,0)
     app.r = 120
+    #editor attributes
     app.viewportCenter = (app.width/2,app.height/2)
     app.editorWidth = 250
+    app.inputBarSelect = -1
+    app.inputText = ""
+
+    #the shape object
     baseSquare = [(-1, -1, 0), (-1, 1, 0), (1, 1, 0), (1, -1, 0), 
                   # 4           5           6           7
                   (-1, -1, 2), (-1, 1, 2), (1, 1, 2), (1, -1, 2)]
@@ -36,14 +41,65 @@ def distance(x0, y0, x1, y1):
     return ((x1 - x0)**2 + (y1 - y0)**2)**0.5
 
 def onMousePress(app, mouseX, mouseY):
-    cx,cy = app.viewport_point_List[app.selectedDotIndex]
-    print(cx, cy)
-    if distance(mouseX,mouseY,cx,cy) > 5:
+    cx, cy = app.viewport_point_List[app.selectedDotIndex]
+
+    #1 handles clicks onto the shape
+    if distance(mouseX, mouseY, cx, cy) > 5 and ((not app.editorMode) or (app.editorMode and mouseX <= app.width - app.editorWidth)):
         for i in range(len(app.viewport_point_List)):
-            (x,y) = app.viewport_point_List[i]
-            if distance(mouseX,mouseY,x,y) < 5:
+            (x, y) = app.viewport_point_List[i]
+            if distance(mouseX, mouseY, x, y) < 5:
                 app.selectedDotIndex = i
-        (x,y) = app.viewport_point_List[app.selectedDotIndex]
+        (x, y) = app.viewport_point_List[app.selectedDotIndex]
+    
+    if app.editorMode:
+
+        inputIdx = inputEditorButton(app,mouseX,mouseY)
+        #exit button
+        if distance(mouseX, mouseY, app.width - 40 - app.editorWidth, 30) <= 25:
+            print("Exit clicked")
+            app.editorMode = False  
+            app.viewportCenter = ((app.width)/2,app.height/2)
+        #x y z input bars
+        elif inputIdx[0] != -1:
+            app.inputBarSelect = inputIdx
+            x,y,z = app.cube.points[app.selectedDotIndex]
+            if inputIdx[0] == 0:
+                newPoint = (x + inputIdx[1], y,z)
+            elif inputIdx[0] == 1:
+                newPoint = (x, y + inputIdx[1], z)    
+            else:
+                newPoint = (x, y , z+ inputIdx[1])  
+            app.cube.points[app.selectedDotIndex] = newPoint
+            print((x,y,z), newPoint)
+    else:
+        if distance(mouseX, mouseY, app.width - 40, 30) <= 25:
+            print("Editor entered")
+            app.editorMode = True  
+            app.viewportCenter = ((app.width-app.editorWidth)/2,app.height/2)
+
+    updateViewport(app)
+
+
+def inputEditorButton(app, x, y):
+    button_height = 50
+    button_margin = 60
+    button_x_start = app.width - app.editorWidth + 80
+    button_x_end = button_x_start + app.editorWidth - 110
+    minus_x_center = app.width - app.editorWidth + 100
+    plus_x_center = app.width - app.editorWidth + 200
+    button_y_start_base = 200
+
+    for button in range(3):
+        button_y_start = button_y_start_base + button * button_margin
+        button_y_end = button_y_start + button_height
+
+        if button_y_start <= y <= button_y_end:
+            if (x - minus_x_center) ** 2 + (y - (button_y_start + button_height // 2)) ** 2 <= 15 ** 2:
+                return (button, -1)  # Minus button clicked
+            elif (x - plus_x_center) ** 2 + (y - (button_y_start + button_height // 2)) ** 2 <= 15 ** 2:
+                return (button, +1)  # Plus button clicked
+                
+    return (-1, 0)
 
 def transformToViewport(app, point):
     thetaX, thetaY, thetaZ = app.camTheta  # Unpack rotation angles
@@ -68,18 +124,49 @@ def transformToViewport(app, point):
 def drawEditor(app):
     drawRect(app.width-app.editorWidth,0,app.editorWidth,app.height,fill="powderBlue",opacity=80)
     drawLabel("Editor", app.width-app.editorWidth + 100+ 20, 20,size = 30)
-    drawLabel(app.cube.points[app.selectedDotIndex], app.width-app.editorWidth + 100+ 20, 100,size = 16)
+    
+   # Coordinates of the current list
+    selectedPoint = app.cube.points[app.selectedDotIndex]
+    selectFaces = app.cube.getFaces(app.selectedDotIndex)
+    drawLabel(selectedPoint, app.width - app.editorWidth + 120, 100, size=16, bold=True)
+    drawLabel("X, Y, Z", app.width - app.editorWidth + 120, 80, size=16)
+    drawLabel("The selected point is in faces: " + str(selectFaces), app.width - app.editorWidth + 120, 120)
+
+    # For each coordinate (X, Y, Z), draw plus, minus buttons and display the value
     selectedCoord = app.viewport_point_List[app.selectedDotIndex]
-    print(selectedCoord)
-    drawLine(*selectedCoord,  selectedCoord[0]+70,  selectedCoord[1], fill='Red',
-        lineWidth=6, dashes=False, opacity=80, rotateAngle=0,
-        visible=True, arrowStart=False, arrowEnd=True)
-    drawLine(*selectedCoord,  selectedCoord[0],  selectedCoord[1]-70, fill='Blue',
-        lineWidth=6, dashes=False, opacity=80, rotateAngle=0,
-        visible=True, arrowStart=False, arrowEnd=True)
-    drawLine(*selectedCoord,  selectedCoord[0]+60,  selectedCoord[1]-30, fill='green',
-        lineWidth=6, dashes=False, opacity=80, rotateAngle=0,
-        visible=True, arrowStart=False, arrowEnd=True)
+    coordList = ["X", "Y", "Z"]
+    button_height = 50
+    button_margin = 60
+
+    for i, coord in enumerate(coordList):
+        drawLabel(coord, app.width - app.editorWidth + 15, 200 + i * button_margin, size=30)
+        drawRect(app.width - app.editorWidth + 80, 200 + i * button_margin, app.editorWidth - 110, button_height, fill="lightGray", border="blue", opacity=50)
+        drawCircle(app.width - app.editorWidth + 100, 225 + i * button_margin, 15, fill="lightGray", border="red")
+        drawLabel("-", app.width - app.editorWidth + 100, 225 + i * button_margin, size=20, bold=True, fill="red")
+        drawLabel(f"{selectedPoint[i]}", app.width - app.editorWidth + 150, 225 + i * button_margin, size=20, bold=True)
+        drawCircle(app.width - app.editorWidth + 200, 225 + i * button_margin, 15, fill="lightGray", border="green")
+        drawLabel("+", app.width - app.editorWidth + 200, 225 + i * button_margin, size=20, bold=True, fill="green")
+
+
+    
+    # #colored arrows
+    # drawLine(*selectedCoord,  selectedCoord[0]+70,  selectedCoord[1], fill='Red',
+    #     lineWidth=6, dashes=False, opacity=80, rotateAngle=0,
+    #     visible=True, arrowStart=False, arrowEnd=True)
+    # drawLine(*selectedCoord,  selectedCoord[0],  selectedCoord[1]-70, fill='Blue',
+    #     lineWidth=6, dashes=False, opacity=80, rotateAngle=0,
+    #     visible=True, arrowStart=False, arrowEnd=True)
+    # drawLine(*selectedCoord,  selectedCoord[0]+60,  selectedCoord[1]-30, fill='green',
+    #     lineWidth=6, dashes=False, opacity=80, rotateAngle=0,
+    #     visible=True, arrowStart=False, arrowEnd=True)
+
+    coordList = ["X", "Y", "Z"]
+    for button in range(3):
+        border = "blue"
+        if app.inputBarSelect != -1 and app.inputBarSelect == button:
+            border = "gold"
+        drawLabel(coordList[button], app.width-app.editorWidth+15,200+button*60, size = 30)
+        drawRect(app.width-app.editorWidth+80,200+button*60,app.editorWidth-110,50,fill = "lightGray", border = border, opacity = 50)
 
 def redrawAll(app):
     #draw points
@@ -96,18 +183,15 @@ def redrawAll(app):
     
     if app.editorMode:
         drawEditor(app)
-        drawLabel("Editor Mode (press E to exit)",(app.width- app.editorWidth)/2, 20)
+        drawCircle(app.width - 40 - app.editorWidth, 30, 25, fill="Salmon")
+        drawLabel("Exit", app.width - 40 - app.editorWidth, 30, size=12, bold=True, fill="maroon")
+        drawLabel("Editor Mode (press Exit to exit editor mode)",(app.width- app.editorWidth)/2, 20)
     else:
-        drawLabel("Viewport Mode (press E to enter editor mode)",app.width/2, 20)
+        drawCircle(app.width - 40, 30, 25, fill='lightSkyBlue')
+        drawLabel("Editor", app.width - 40, 30, size=12, bold=True, fill="darkblue")
+        drawLabel("Viewport Mode (press Editor button to enter editor mode)",app.width/2, 20)
 
 def onKeyPress(app, key):
-    if key == "e":
-        app.editorMode = not app.editorMode
-        if app.editorMode:
-            app.viewportCenter = ((app.width-app.editorWidth)/2,app.height/2)
-        else:
-            app.viewportCenter = ((app.width)/2,app.height/2)
-    
     updateViewport(app)
 
 def onKeyHold(app, key):
