@@ -14,51 +14,71 @@ class ShapeObject:
             tempFace = FaceObject(i,self.points,face)
             self.faces.append(tempFace)
 
-    def getFaces(self, pointIndex):
-        if pointIndex < 0:
+    def getFaces(self, indexInPoints):
+        if indexInPoints < 0:
             return -1
         facesThisPointIsIn = []
         for face in self.faces:
-            if pointIndex in face.order:
+            if indexInPoints in face.order:
                 facesThisPointIsIn.append(face.index)
         return facesThisPointIsIn
+
+# references: I am using the formula given by this website https://www.cuemath.com/geometry/coplanar/
+    def isCoplanar(self, points):
+        """
+        this checks if the last point of the list
+        is co-planar with the rest of the points in the faceobject
+        """
+        if len(points) < 4:
+            return True  
+        
+        # since we only change one of the points at one time, assume that the all previous points are coplanar.
+        p0 = points[0]
+        p1 = points[1]
+        p2 = points[2]
+        p3 = points[3]
+
+        v1 = self.listDifference(p1,p0)
+        v2 = self.listDifference(p2,p0)
+        #the last list difference
+        v3 = self.listDifference(p3,p0)
+
+        normal = self.cross(v1, v2)
+
+        product = 0
+        for i in range(len(normal)):
+            product += normal[i] * v3[i]
+        return product == 0
     
-    def mergeFaces(self, coplanarFaces):
-        merged = coplanarFaces.pop()
-        mergeOrder = set(merged.order)
-        for face in coplanarFaces:
-            for i in face.order:
-                mergeOrder.add(i)
-            self.faces.remove(face)
-        for i in range(len(self.faces)):
-            face.index = i
-        self.faces.append(FaceObject(len(self.faces), self.points, list(mergeOrder)))
+    def cross(self, v1, v2):
+        #LIST HAS TO HAVE LEN OF 3
+        return [
+            v1[1] * v2[2] - v1[2] * v2[1],  
+            v1[2] * v2[0] - v1[0] * v2[2],  
+            v1[0] * v2[1] - v1[1] * v2[0]   
+        ]
 
-    def user_change_this_Point (self, pointIndex, newPoint):
-        oldFaces = self.getFaces(pointIndex)
-        coplanarFaces = []
-        # we want to see which faces we need to change
-        for index in oldFaces:
-            print("\t\told faces", oldFaces)
-            faceobj = self.faces[index]
+    def listDifference(self, a, b):
+        empty = []
+        for i in range(3):
+            empty.append(a[i]-b[i])
+        return empty
 
-            if not faceobj.isCoplanar(newPoint):
-                faceobj.order.remove(pointIndex)
-                remnantPoints = faceobj.closest2Points(newPoint)
-                newOrder = [pointIndex]+remnantPoints
-                print("new ORDER", newOrder)
-                newFace = FaceObject (len(self.faces),self.points,newOrder)
-                self.faces.append(newFace)
-            # else:
-            #     # if the face object and the new point is coplanar:
-            #     # faceobj.append(pointIndex)
-            #     coplanarFaces.append(faceobj)
-        if len(coplanarFaces)> 1:
-            self.mergeFaces(coplanarFaces)
-                
-        self.points[pointIndex] = newPoint
+    def rearrangeFaces(self):
+        new_faces = []
+        for face in self.faces:
+            # Gather the points for this face
+            face_points = [self.points[i] for i in face.order]
 
-# normal testing cases
+            if self.isCoplanar(face_points):
+                new_faces.append(face)  
+            else:
+                for i in range(2, len(face.order)):
+                    triangle_order = [face.order[0], face.order[i-1], face.order[i]]
+                    new_faces.append(FaceObject(face.index, self.points, triangle_order))
+        self.faces = new_faces 
+        print(self.faces) 
+
 baseSquare = [(-1, -1, 0), (-1, 1, 0), (1, 1, 0), (1, -1, 0), 
                 # 4           5           6           7
                 (-1, -1, 2), (-1, 1, 2), (1, 1, 2), (1, -1, 2)]
@@ -69,3 +89,9 @@ order = [[0,1,2,3],
             [1,2,6,5],
             [4,5,6,7]]
 cube = ShapeObject((0,0,0), baseSquare, order)
+cube.rearrangeFaces()
+
+arr_2d = np.array([[1, 2, 3],
+                   [4, 5, 6],
+                   [7, 8, 9]])
+
