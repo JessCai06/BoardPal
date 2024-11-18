@@ -61,7 +61,6 @@ def onMousePress(app, mouseX, mouseY):
             app.viewportCenter = ((app.width)/2,app.height/2)
         #x y z input bars
         elif inputIdx[0] != -1:
-            app.inputBarSelect = inputIdx
             x,y,z = app.cube.points[app.selectedDotIndex]
             if inputIdx[0] == 0:
                 newPoint = (x + inputIdx[1], y,z)
@@ -69,7 +68,10 @@ def onMousePress(app, mouseX, mouseY):
                 newPoint = (x, y + inputIdx[1], z)    
             else:
                 newPoint = (x, y , z+ inputIdx[1])  
-            app.cube.points[app.selectedDotIndex] = newPoint
+            print("Before rearrangeFaces:", app.cube.faces)
+            app.cube.user_change_this_Point(app.selectedDotIndex, newPoint)
+            print("After rearrangeFaces:", app.cube.faces)
+
             print((x,y,z), newPoint)
     else:
         if distance(mouseX, mouseY, app.width - 40, 30) <= 25:
@@ -79,7 +81,7 @@ def onMousePress(app, mouseX, mouseY):
 
     updateViewport(app)
 
-
+#AI: greedy: minimax AI? 
 def inputEditorButton(app, x, y):
     button_height = 50
     button_margin = 60
@@ -101,6 +103,7 @@ def inputEditorButton(app, x, y):
                 
     return (-1, 0)
 
+#Chatgpt wrote this method
 def transformToViewport(app, point):
     thetaX, thetaY, thetaZ = app.camTheta  # Unpack rotation angles
     x, y, z = point
@@ -123,22 +126,24 @@ def transformToViewport(app, point):
 
 def drawEditor(app):
     drawRect(app.width-app.editorWidth,0,app.editorWidth,app.height,fill="powderBlue",opacity=80)
-    drawLabel("Editor", app.width-app.editorWidth + 100+ 20, 20,size = 30)
+
+    drawLabel("Editor", app.width-app.editorWidth/2, 50,size = 30)
     
    # Coordinates of the current list
     selectedPoint = app.cube.points[app.selectedDotIndex]
     selectFaces = app.cube.getFaces(app.selectedDotIndex)
-    drawLabel(selectedPoint, app.width - app.editorWidth + 120, 100, size=16, bold=True)
-    drawLabel("X, Y, Z", app.width - app.editorWidth + 120, 80, size=16)
-    drawLabel("The selected point is in faces: " + str(selectFaces), app.width - app.editorWidth + 120, 120)
+    ######## Point is here
+    drawLabel(selectedPoint, app.width-app.editorWidth/2, 100, size=16, bold=True)
+    ######## faces
+    drawLabel("The selected point is in faces: " + str(selectFaces),app.width-app.editorWidth/2 , 120)
 
-    # For each coordinate (X, Y, Z), draw plus, minus buttons and display the value
     selectedCoord = app.viewport_point_List[app.selectedDotIndex]
     coordList = ["X", "Y", "Z"]
     button_height = 50
     button_margin = 60
 
-    for i, coord in enumerate(coordList):
+    for i in range(len(coordList)):
+        coord = coordList[i]
         drawLabel(coord, app.width - app.editorWidth + 15, 200 + i * button_margin, size=30)
         drawRect(app.width - app.editorWidth + 80, 200 + i * button_margin, app.editorWidth - 110, button_height, fill="lightGray", border="blue", opacity=50)
         drawCircle(app.width - app.editorWidth + 100, 225 + i * button_margin, 15, fill="lightGray", border="red")
@@ -146,19 +151,6 @@ def drawEditor(app):
         drawLabel(f"{selectedPoint[i]}", app.width - app.editorWidth + 150, 225 + i * button_margin, size=20, bold=True)
         drawCircle(app.width - app.editorWidth + 200, 225 + i * button_margin, 15, fill="lightGray", border="green")
         drawLabel("+", app.width - app.editorWidth + 200, 225 + i * button_margin, size=20, bold=True, fill="green")
-
-
-    
-    # #colored arrows
-    # drawLine(*selectedCoord,  selectedCoord[0]+70,  selectedCoord[1], fill='Red',
-    #     lineWidth=6, dashes=False, opacity=80, rotateAngle=0,
-    #     visible=True, arrowStart=False, arrowEnd=True)
-    # drawLine(*selectedCoord,  selectedCoord[0],  selectedCoord[1]-70, fill='Blue',
-    #     lineWidth=6, dashes=False, opacity=80, rotateAngle=0,
-    #     visible=True, arrowStart=False, arrowEnd=True)
-    # drawLine(*selectedCoord,  selectedCoord[0]+60,  selectedCoord[1]-30, fill='green',
-    #     lineWidth=6, dashes=False, opacity=80, rotateAngle=0,
-    #     visible=True, arrowStart=False, arrowEnd=True)
 
     coordList = ["X", "Y", "Z"]
     for button in range(3):
@@ -177,7 +169,9 @@ def redrawAll(app):
             fill = "red"
         drawCircle(*point, 5, fill=fill)
     #draw lines
+    
     for face in app.cube.faces:
+        print("ORDER >>>>>>>", face.order)
         for edge in face.getEdges():
             drawLine(*app.viewport_point_List[edge[0]],*app.viewport_point_List[edge[1]])
     

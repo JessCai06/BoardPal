@@ -31,7 +31,57 @@ class FaceObject:
             edges.append(line)
         edges.append((self.order[0], self.order[-1]))
         return edges
+    
+    def distance3D (self,p1,p2):
+        return sum((p1[i] - p2[i])**2 for i in range(3))**0.5
 
+    def closest2Points(self, point):
+        face_points = [self.points[i] for i in self.order]
+        distances = []
+        
+        for fp in face_points:
+            dist = self.distance3D(fp, point)
+            distances.append((fp, dist))
+
+        for i in range(len(distances)):
+            for j in range(i + 1, len(distances)):
+                if distances[i][1] > distances[j][1]:
+                    distances[i], distances[j] = distances[j], distances[i]
+        a = self.points.index(distances[0][0])
+        b = self.points.index(distances[1][0])
+        print("closest two points", a,b)
+        return [a,b]
+
+
+    # references: I am using the formula given by this website https://www.cuemath.com/geometry/coplanar/
+    def isCoplanar(self, point):
+        """
+        this checks if the last point is co-planar with the rest of the points in the faceobject
+        """
+        #this is very unlikely but here - we assume there are only two points
+        if len(self.order) <= 2:
+            return True 
+        
+        points = [self.points[i] for i in self.order]
+        # since we only change one of the points at one time, assume that the all previous points are coplanar.
+        p0, p1, p2 = points[len(points)-3:]
+
+        v1 = [p1[i] - p0[i] for i in range(3)]
+        v2 = [p2[i] - p0[i] for i in range(3)]
+        v3 = [point[i] - p0[i] for i in range(3)]
+
+        normal = [
+        v1[1] * v2[2] - v1[2] * v2[1],  #  x
+        v1[2] * v2[0]- v1[0] * v2[2],  # y
+        v1[0] * v2[1] - v1[1] * v2[0],  # z
+            ]
+        #print(normal)
+        result = 0
+        for i in range(3):
+            result += normal[i] * v3[i]
+
+        return result == 0
+    
     def __eq__(self, other):
         #if they have the same number of points (quad == triangle)
         if len(self.order) != len(self.order):
