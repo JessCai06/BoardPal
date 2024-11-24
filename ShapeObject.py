@@ -22,7 +22,7 @@ class ShapeObject:
         Move the center of the shape to a new position, updating all vertices.
         :param newPos: A tuple (newX, newY, newZ) representing the new center position.
         """
-        # Calculate the offset to move the center
+        print("newpos", newPos)
         offsetX = newPos[0] - self.x
         offsetY = newPos[1] - self.y
         offsetZ = newPos[2] - self.z
@@ -217,3 +217,5 @@ class ShapeObject:
 
 
 
+shape =ShapeObject((0,0,0),1,3)
+print(shape.calculateRadius())
