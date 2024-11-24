@@ -9,14 +9,34 @@ class ShapeObject:
         order = shapie_dict["order"]
         self.points = []
         for coord in points:
-            print(coord)
-            temp = (coord[0]+self.x, coord[1]+self.y,coord[2]+self.z)
+            temp = (coord[0] + self.x, coord[1] + self.y, coord[2] + self.z)
             self.points.append(temp)
         self.faces = []
         for i in range(len(order)):
             face = order[i]
-            tempFace = FaceObject(i,self.points,face)
+            tempFace = FaceObject(i, self.points, face)
             self.faces.append(tempFace)
+
+    def moveCenter(self, newPos):
+        """
+        Move the center of the shape to a new position, updating all vertices.
+        :param newPos: A tuple (newX, newY, newZ) representing the new center position.
+        """
+        # Calculate the offset to move the center
+        offsetX = newPos[0] - self.x
+        offsetY = newPos[1] - self.y
+        offsetZ = newPos[2] - self.z
+
+        # Update the center position
+        self.x, self.y, self.z = newPos
+
+        # Update each point to maintain relative positions
+        for i, coord in enumerate(self.points):
+            self.points[i] = (
+                coord[0] + offsetX,
+                coord[1] + offsetY,
+                coord[2] + offsetZ
+            )
 
     def getFaces(self, indexInPoints):
         facesThisPointIsIn = []
@@ -29,6 +49,7 @@ class ShapeObject:
         if len(coord1) != len(coord2):
             raise ValueError("Coordinates must have the same number of dimensions")
         return tuple((c1 + c2) / 2 for c1, c2 in zip(coord1, coord2))
+
 
 # references: I am using the formula given by this website https://www.cuemath.com/geometry/coplanar/
     def isCoplanar(self, points):
@@ -71,6 +92,18 @@ class ShapeObject:
             empty.append(a[i]-b[i])
         return empty
 
+    def calculateRadius(self):
+        max_distance = 0
+        for point in self.points:
+            distance = math.sqrt(
+                (point[0] - self.x) ** 2 +
+                (point[1] - self.y) ** 2 +
+                (point[2] - self.z) ** 2
+            )
+            if distance > max_distance:
+                max_distance = distance
+        return max_distance
+
     def rearrangeFaces(self):
         new_faces = []
         for face in self.faces:
@@ -96,17 +129,16 @@ class ShapeObject:
         print(category)
         #STANDARD
         if category == 0:
-            # Standard shapes: Pyramid, Cube, Hexagonal Prism, Pentagonal Prism
             if option == 0: 
                 points = [
-                    (0, 0, 3),  # Apex
-                    (-1, -1, 0), (1, -1, 0), (0, 1, 0)  # Base vertices
+                    (0, 0, 3),  
+                    (-1, -1, 0), (1, -1, 0), (0, 1, 0)  
                 ]
                 order = [
-                    [0, 1, 2],  # Apex to base side 1
-                    [0, 2, 3],  # Apex to base side 2
-                    [0, 3, 1],  # Apex to base side 3
-                    [1, 2, 3]   # Base face
+                    [0, 1, 2],  
+                    [0, 2, 3],  
+                    [0, 3, 1],  
+                    [1, 2, 3]   
                 ]
             elif option == 1:  # Cube
                 points = [
@@ -114,63 +146,60 @@ class ShapeObject:
                     (-2, -2, 2), (-2, 2, 2), (2, 2, 2), (2, -2, 2)
                 ]
                 order = [
-                    [0, 1, 2, 3], [4, 5, 6, 7],  # Top and bottom faces
-                    [0, 1, 5, 4], [1, 2, 6, 5],  # Side faces
+                    [0, 1, 2, 3], [4, 5, 6, 7],  
+                    [0, 1, 5, 4], [1, 2, 6, 5],  
                     [2, 3, 7, 6], [3, 0, 4, 7]
                 ]
-            elif option == 2:  # Hexagonal Prism
-                # Base hexagon (z = -2), mirrored at z = 2
+            elif option == 2:  
                 points = [
                     (math.cos(i * math.pi / 3), math.sin(i * math.pi / 3), -2) for i in range(6)
                 ] + [
                     (math.cos(i * math.pi / 3), math.sin(i * math.pi / 3), 2) for i in range(6)
                 ]
                 order = [
-                    [0, 1, 2, 3, 4, 5],  # Bottom face
-                    [6, 7, 8, 9, 10, 11],  # Top face
-                ] + [[i, (i + 1) % 6, (i + 1) % 6 + 6, i + 6] for i in range(6)]  # Side faces
-            elif option == 3:  # Pentagonal Prism
-                # Base pentagon (z = -2), mirrored at z = 2
+                    [0, 1, 2, 3, 4, 5], 
+                    [6, 7, 8, 9, 10, 11], 
+                ] + [[i, (i + 1) % 6, (i + 1) % 6 + 6, i + 6] for i in range(6)]  
+            elif option == 3:  
                 points = [
                     (math.cos(i * 2 * math.pi / 5), math.sin(i * 2 * math.pi / 5), -2) for i in range(5)
                 ] + [
                     (math.cos(i * 2 * math.pi / 5), math.sin(i * 2 * math.pi / 5), 2) for i in range(5)
                 ]
                 order = [
-                    [0, 1, 2, 3, 4],  # Bottom face
-                    [5, 6, 7, 8, 9],  # Top face
+                    [0, 1, 2, 3, 4], 
+                    [5, 6, 7, 8, 9],  
                 ] + [[i, (i + 1) % 5, (i + 1) % 5 + 5, i + 5] for i in range(5)]  
         #PRISM
         elif category == 1:
-            # Prisms: Triangular, Square, Hexagonal, Pentagonal
-            if option == 0:  # Triangular Prism
+            if option == 0:  
                 points = [
-                    (-1, -1, -2), (1, -1, -2), (0, 1, -2),  # Base 1 (z = -2)
-                    (-1, -1, 2), (1, -1, 2), (0, 1, 2)  # Base 2 (z = 2)
+                    (-1, -1, -2), (1, -1, -2), (0, 1, -2),  
+                    (-1, -1, 2), (1, -1, 2), (0, 1, 2)  
                 ]
                 order = [
-                    [0, 1, 2], [3, 4, 5],  # Bottom and top faces
-                    [0, 1, 4, 3], [1, 2, 5, 4], [2, 0, 3, 5]  # Side faces
+                    [0, 1, 2], [3, 4, 5],  
+                    [0, 1, 4, 3], [1, 2, 5, 4], [2, 0, 3, 5]  
                 ]
             elif option == 1:  # Square Prism
                 points = [
-                    (-1, -1, -2), (1, -1, -2), (1, 1, -2), (-1, 1, -2),  # Base 1 (z = -2)
-                    (-1, -1, 2), (1, -1, 2), (1, 1, 2), (-1, 1, 2)  # Base 2 (z = 2)
+                    (-1, -1, -2), (1, -1, -2), (1, 1, -2), (-1, 1, -2),  
+                    (-1, -1, 2), (1, -1, 2), (1, 1, 2), (-1, 1, 2) 
                 ]
                 order = [
-                    [0, 1, 2, 3], [4, 5, 6, 7],  # Bottom and top faces
-                    [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]  # Side faces
+                    [0, 1, 2, 3], [4, 5, 6, 7],  
+                    [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]  
                 ]
-            elif option == 2:  # Hexagonal Prism (same as standard)
+            elif option == 2:  
                 points = [
                     (math.cos(i * math.pi / 3), math.sin(i * math.pi / 3), -2) for i in range(6)
                 ] + [
                     (math.cos(i * math.pi / 3), math.sin(i * math.pi / 3), 2) for i in range(6)
                 ]
                 order = [
-                    [0, 1, 2, 3, 4, 5],  # Bottom face
-                    [6, 7, 8, 9, 10, 11],  # Top face
-                ] + [[i, (i + 1) % 6, (i + 1) % 6 + 6, i + 6] for i in range(6)]  # Side faces
+                    [0, 1, 2, 3, 4, 5],  
+                    [6, 7, 8, 9, 10, 11],  
+                ] + [[i, (i + 1) % 6, (i + 1) % 6 + 6, i + 6] for i in range(6)]  
             elif option == 3:  # Pentagonal Prism (same as standard)
                 points = [
                     (math.cos(i * 2 * math.pi / 5), math.sin(i * 2 * math.pi / 5), -2) for i in range(5)
@@ -178,17 +207,13 @@ class ShapeObject:
                     (math.cos(i * 2 * math.pi / 5), math.sin(i * 2 * math.pi / 5), 2) for i in range(5)
                 ]
                 order = [
-                    [0, 1, 2, 3, 4],  # Bottom face
-                    [5, 6, 7, 8, 9],  # Top face
-                ] + [[i, (i + 1) % 5, (i + 1) % 5 + 5, i + 5] for i in range(5)]  # Side faces
+                    [0, 1, 2, 3, 4],  
+                    [5, 6, 7, 8, 9],  
+                ] + [[i, (i + 1) % 5, (i + 1) % 5 + 5, i + 5] for i in range(5)] 
         else:
             raise ValueError("Invalid category")
 
         return {"points": points, "order": order}
 
-
-
-cube = ShapeObject((0,0,0), 0,1)
-cube.rearrangeFaces()
 
 

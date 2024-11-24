@@ -1,11 +1,13 @@
 from cmu_graphics import *
 from ShapeObject import ShapeObject
 from FaceObject import FaceObject
+from shapeCollectionObject import shapeCollectionObject
 import math
 import random
 
 def onAppStart(app):
 
+    initiateWelcome(app)
     app.editorMode = False
     app.selectedDotIndex = 0
     app.camTheta = (45, 45, 45)
@@ -14,14 +16,18 @@ def onAppStart(app):
     app.viewportCenter = (app.width/2,app.height/2)
     app.editorWidth = 250
     #the shape object
-    app.cube = ShapeObject((0,0,0), 1, 0)
+    app.collection = shapeCollectionObject()
+    app.collection.addShape(ShapeObject((0,0,0),0,1))
     app.viewport_point_List = []
     updateViewport(app)
 
+def initiateWelcome(app):
+    pass
+
 def updateViewport(app):
     app.viewport_point_List = []
-    for i in range(len(app.cube.points)):
-        point = app.cube.points[i]
+    for i in range(len(app.collection.shapes[0].points)):
+        point = app.collection.shapes[0].points[i]
         viewport_point = transformToViewport(app, point)
         app.viewport_point_List.append(viewport_point)
 
@@ -49,17 +55,17 @@ def onMousePress(app, mouseX, mouseY):
             app.viewportCenter = ((app.width)/2,app.height/2)
         #x y z input bars
         elif inputIdx[0] != -1:
-            x,y,z = app.cube.points[app.selectedDotIndex]
+            x,y,z = app.collection.shapes[0].points[app.selectedDotIndex]
             if inputIdx[0] == 0:
                 newPoint = (x + inputIdx[1], y,z)
             elif inputIdx[0] == 1:
                 newPoint = (x, y + inputIdx[1], z)    
             else:
                 newPoint = (x, y , z+ inputIdx[1])  
-            app.cube.points[app.selectedDotIndex] = newPoint
-            print("Before rearrangeFaces:", app.cube.faces)
-            app.cube.rearrangeFaces()
-            print("After rearrangeFaces:", app.cube.faces)
+            app.collection.shapes[0].points[app.selectedDotIndex] = newPoint
+            print("Before rearrangeFaces:", app.collection.shapes[0].faces)
+            app.collection.shapes[0].rearrangeFaces()
+            print("After rearrangeFaces:", app.collection.shapes[0].faces)
 
             print((x,y,z), newPoint)
     else:
@@ -118,8 +124,8 @@ def drawEditor(app):
     
     shift = 50
    # Coordinates of the current list
-    selectedPoint = app.cube.points[app.selectedDotIndex]
-    selectFaces = app.cube.getFaces(app.selectedDotIndex)
+    selectedPoint = app.collection.shapes[0].points[app.selectedDotIndex]
+    selectFaces = app.collection.shapes[0].getFaces(app.selectedDotIndex)
     drawLabel(selectedPoint, app.width - app.editorWidth + 120, 100+ shift, size=16, bold=True)
     drawLabel("X, Y, Z", app.width - app.editorWidth + 120, 80 + shift, size=16)
     drawLabel("The selected point is in faces: " + str(selectFaces), app.width - app.editorWidth + 120 , 120 + shift)
@@ -159,17 +165,17 @@ def redrawAll(app):
 
 
     #draw lines
-    for faceidx in range(len(app.cube.faces)):
+    for faceidx in range(len(app.collection.shapes[0].faces)):
         r, g, b= random.randint(0,255), random.randint(0,255),random.randint(0,255)
         polygon = []
         #draws faces:
-        selectFaces = app.cube.getFaces(app.selectedDotIndex)
-        face = app.cube.faces[faceidx]
+        selectFaces = app.collection.shapes[0].getFaces(app.selectedDotIndex)
+        face = app.collection.shapes[0].faces[faceidx]
         for i in face.order:
             polygon.append(app.viewport_point_List[i][0])
             polygon.append(app.viewport_point_List[i][1])
         #print(app.colors, faceidx, len(app.colors))
-        drawPolygon(*polygon, fill = rgb(*app.cube.faces[faceidx].color), opacity = 50)
+        drawPolygon(*polygon, fill = rgb(*app.collection.shapes[0].faces[faceidx].color), opacity = 50)
         # draws lines
         for edge in face.getEdges():
             drawLine(*app.viewport_point_List[edge[0]],*app.viewport_point_List[edge[1]])
@@ -183,9 +189,6 @@ def redrawAll(app):
         drawCircle(app.width - 40, 30, 25, fill='lightSkyBlue')
         drawLabel("Editor", app.width - 40, 30, size=12, bold=True, fill="darkblue")
         drawLabel("Viewport Mode (press Editor button to enter editor mode)",app.width/2, 20)
-
-def onKeyPress(app, key):
-    updateViewport(app)
 
 def onKeyHold(app, key):
     thetaX, thetaY, thetaZ = app.camTheta  

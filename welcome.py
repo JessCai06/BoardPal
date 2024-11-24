@@ -6,17 +6,6 @@ def onAppStart(app):
     app.currentPage = "welcome"  # Default page is the welcome page
     app.selectedCategory = None
 
-    # Setup for shape editing
-    app.editorMode = False
-    app.selectedDotIndex = 0
-    app.camTheta = (45, 45, 45)
-    app.graphCenter = (0, 0)
-    app.r = 50
-
-    # Editor attributes
-    app.viewportCenter = (app.width / 2, app.height / 2)
-    app.editorWidth = 250
-
 def drawWelcomePage(app):
     # Title
     drawLabel("ShapeShifter", app.width / 2, 100, size=40, bold=True, align='center')
