@@ -17,7 +17,7 @@ class shapeCollectionObject:
             self.shapes.append(shape)
         elif len(self.shapes) < 2:
             #print("*******************", self.shapes[0].calculateRadius())
-            newSpawn = (0, 0, self.shapes[0].calculateRadius()) 
+            newSpawn = (0, 0, int(self.shapes[0].calculateRadius() + shape.calculateRadius())) 
             shape.moveCenter(newSpawn)
             self.shapes.append(shape)
         

@@ -7,55 +7,31 @@ def onAppStart(app):
     app.selectedCategory = None
 
 def drawWelcomePage(app):
+    # Background
+    drawRect(0, 0, app.width, app.height, fill="lightBlue")
+
     # Title
-    drawLabel("ShapeShifter", app.width / 2, 100, size=40, bold=True, align='center')
+    drawLabel("SHAPESHIFTER", app.width / 2, app.height / 3, size=50, bold=True, align="center", fill="black")
+
+    # Subtitle
+    drawLabel("What would you like to start with?", app.width / 2, app.height / 2, size=20, bold=False, align="center", fill="black")
 
     # Buttons
-    drawRect(app.width / 2 - 150, 200, 300, 80, fill='orange')  # "Standard Shapes"
-    drawLabel("Standard Shapes", app.width / 2, 240, size=20, align='center')
+    buttonWidth = 150
+    buttonHeight = 50
+    buttonSpacing = 20
+    centerX = app.width / 2
+    centerY = app.height / 2 + 100
 
-    drawRect(app.width / 2 - 150, 300, 300, 80, fill='blue')  # "Prisms"
-    drawLabel("Prisms", app.width / 2, 340, size=20, align='center')
+    # Shape Button
+    drawRect(centerX - buttonWidth - buttonSpacing / 2, centerY - buttonHeight / 2, buttonWidth, buttonHeight, fill="skyblue")
+    drawLabel("Shape", centerX - buttonWidth - buttonSpacing / 2 + buttonWidth / 2, centerY, size=20, bold=True, fill="black")
 
-def drawShapeOptionsPage(app):
-    if app.selectedCategory == "Standard Shapes":
-        options = ["Pyramid", "Cube", "Hexagon", "Pentagon"]
-    elif app.selectedCategory == "Prisms":
-        options = ["Triangle", "Square", "Hexagon", "Pentagon"]
-
-    drawLabel(f"Choose a {app.selectedCategory}", app.width / 2, 50, size=30, bold=True, align='center')
-
-    # Display options as a centered list
-    for i, option in enumerate(options):
-        y = 150 + i * 60
-        drawRect(app.width / 2 - 150, y - 30, 300, 50, fill='lightgray')
-        drawLabel(option, app.width / 2, y, size=20, align='center')
-
-def onMousePress(app, mouseX, mouseY):
-    if app.currentPage == "welcome":
-        if 200 <= mouseY <= 280:  # "Standard Shapes" button
-            app.currentPage = "shapeOptions"
-            app.selectedCategory = "Standard Shapes"
-        elif 300 <= mouseY <= 380:  # "Prisms" button
-            app.currentPage = "shapeOptions"
-            app.selectedCategory = "Prisms"
-    elif app.currentPage == "shapeOptions":
-        # Check which shape option was selected
-        options = ["Pyramid", "Cube", "Hexagon", "Pentagon"] if app.selectedCategory == "Standard Shapes" else ["Triangle", "Square", "Hexagon", "Pentagon"]
-        for i, option in enumerate(options):
-            y = 150 + i * 60
-            if y - 30 <= mouseY <= y + 30:
-                print(f"You selected: {option}")
-                app.currentPage = "editor"  # Transition to editor page
-                # You can extend this to pass selected shape data
+    # File Button
+    drawRect(centerX + buttonSpacing / 2, centerY - buttonHeight / 2, buttonWidth, buttonHeight, fill="skyblue")
+    drawLabel("File?", centerX + buttonSpacing / 2 + buttonWidth / 2, centerY, size=20, bold=True, fill="black")
 
 def redrawAll(app):
-    if app.currentPage == "welcome":
-        drawWelcomePage(app)
-    elif app.currentPage == "shapeOptions":
-        drawShapeOptionsPage(app)
-    elif app.currentPage == "editor":
-        # Placeholder: Replace with your editor rendering
-        drawLabel("Editor Mode", app.width / 2, app.height / 2, size=40, bold=True, align='center')
+    drawWelcomePage(app)
 
 runApp(width=1000, height=600)
