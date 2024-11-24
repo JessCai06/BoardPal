@@ -1,3 +1,4 @@
+import random 
 
 class FaceObject:
     """
@@ -23,6 +24,8 @@ class FaceObject:
         self.index = i
         self.points = points
         self.order = order
+        r, g, b= random.randint(0,255), random.randint(0,255),random.randint(0,255)
+        self.color = (r,g,b)
 
     def getEdges(self):
         edges = []
@@ -44,4 +47,4 @@ class FaceObject:
 
     def __str__(self):
         edges_str = ', '.join([f"({edge[0]}, {edge[1]})" for edge in self.getEdges()])
-        return f"FaceObject(index={self.index}, order={self.order}, edges=[{edges_str}])"
+        return f"FaceObject >>>> index={self.index}, order={self.order}, edges=[{edges_str}])"

@@ -2,31 +2,19 @@ from cmu_graphics import *
 from ShapeObject import ShapeObject
 from FaceObject import FaceObject
 import math
+import random
 
 def onAppStart(app):
 
     app.editorMode = False
     app.selectedDotIndex = 0
-    app.camTheta = (0, 0, 0)
-    app.graphCenter = (0,0)
-    app.r = 120
+    app.camTheta = (45, 45, 45)
+    app.r = 50
     #editor attributes
     app.viewportCenter = (app.width/2,app.height/2)
     app.editorWidth = 250
-    app.inputBarSelect = -1
-    app.inputText = ""
-
     #the shape object
-    baseSquare = [(-1, -1, 0), (-1, 1, 0), (1, 1, 0), (1, -1, 0), 
-                  # 4           5           6           7
-                  (-1, -1, 2), (-1, 1, 2), (1, 1, 2), (1, -1, 2)]
-    order = [[0,1,2,3],
-             [0,1,5,4],
-             [2,3,7,6],
-             [0,3,7,4],
-             [1,2,6,5],
-             [4,5,6,7]]
-    app.cube = ShapeObject((0,0,0), baseSquare, order)
+    app.cube = ShapeObject((0,0,0), 1, 0)
     app.viewport_point_List = []
     updateViewport(app)
 
@@ -79,7 +67,6 @@ def onMousePress(app, mouseX, mouseY):
             print("Editor entered")
             app.editorMode = True  
             app.viewportCenter = ((app.width-app.editorWidth)/2,app.height/2)
-
     updateViewport(app)
 
 
@@ -92,6 +79,7 @@ def inputEditorButton(app, x, y):
     plus_x_center = app.width - app.editorWidth + 200
     button_y_start_base = 200
 
+    #this is the x y and z buttons that changes the coordinate
     for button in range(3):
         button_y_start = button_y_start_base + button * button_margin
         button_y_end = button_y_start + button_height
@@ -100,7 +88,7 @@ def inputEditorButton(app, x, y):
             if (x - minus_x_center) ** 2 + (y - (button_y_start + button_height // 2)) ** 2 <= 15 ** 2:
                 return (button, -1)  # Minus button clicked
             elif (x - plus_x_center) ** 2 + (y - (button_y_start + button_height // 2)) ** 2 <= 15 ** 2:
-                return (button, +1)  # Plus button clicked
+                return (button, +1)  
                 
     return (-1, 0)
 
@@ -126,14 +114,15 @@ def transformToViewport(app, point):
 
 def drawEditor(app):
     drawRect(app.width-app.editorWidth,0,app.editorWidth,app.height,fill="powderBlue",opacity=80)
-    drawLabel("Editor", app.width-app.editorWidth + 100+ 20, 20,size = 30)
+    drawLabel("Editor", app.width-app.editorWidth + 100+ 20, 70,size = 35)
     
+    shift = 50
    # Coordinates of the current list
     selectedPoint = app.cube.points[app.selectedDotIndex]
     selectFaces = app.cube.getFaces(app.selectedDotIndex)
-    drawLabel(selectedPoint, app.width - app.editorWidth + 120, 100, size=16, bold=True)
-    drawLabel("X, Y, Z", app.width - app.editorWidth + 120, 80, size=16)
-    drawLabel("The selected point is in faces: " + str(selectFaces), app.width - app.editorWidth + 120, 120)
+    drawLabel(selectedPoint, app.width - app.editorWidth + 120, 100+ shift, size=16, bold=True)
+    drawLabel("X, Y, Z", app.width - app.editorWidth + 120, 80 + shift, size=16)
+    drawLabel("The selected point is in faces: " + str(selectFaces), app.width - app.editorWidth + 120 , 120 + shift)
 
     # For each coordinate (X, Y, Z), draw plus, minus buttons and display the value
     selectedCoord = app.viewport_point_List[app.selectedDotIndex]
@@ -142,21 +131,17 @@ def drawEditor(app):
     button_margin = 60
 
     for i, coord in enumerate(coordList):
-        drawLabel(coord, app.width - app.editorWidth + 15, 200 + i * button_margin, size=30)
-        drawRect(app.width - app.editorWidth + 80, 200 + i * button_margin, app.editorWidth - 110, button_height, fill="lightGray", border="blue", opacity=50)
-        drawCircle(app.width - app.editorWidth + 100, 225 + i * button_margin, 15, fill="lightGray", border="red")
+        rounded = 20
+        drawRect(app.width-app.editorWidth +  rounded+2,225 + i * button_margin - rounded+.8,40,2* rounded-.8,fill = "skyblue")
+        drawCircle(app.width - app.editorWidth +  rounded + 8, 225 + i * button_margin,  rounded, fill="skyblue")
+        drawCircle(app.width - app.editorWidth + 52, 225 + i * button_margin,  rounded, fill="skyblue")
+        drawRect(app.width - app.editorWidth + 80, 200 + i * button_margin, app.editorWidth - 110, button_height, fill="lightGray", opacity=50)
+        drawLabel(coordList[i], app.width-app.editorWidth+40,225+i*60, size = 30, fill = "black", opacity = 80)
+        drawCircle(app.width - app.editorWidth + 100, 225 + i * button_margin, 15, fill="lightsalmon")
         drawLabel("-", app.width - app.editorWidth + 100, 225 + i * button_margin, size=20, bold=True, fill="red")
         drawLabel(f"{selectedPoint[i]}", app.width - app.editorWidth + 150, 225 + i * button_margin, size=20, bold=True)
-        drawCircle(app.width - app.editorWidth + 200, 225 + i * button_margin, 15, fill="lightGray", border="green")
+        drawCircle(app.width - app.editorWidth + 200, 225 + i * button_margin, 15, fill="lightgreen")
         drawLabel("+", app.width - app.editorWidth + 200, 225 + i * button_margin, size=20, bold=True, fill="green")
-
-    coordList = ["X", "Y", "Z"]
-    for button in range(3):
-        border = "blue"
-        if app.inputBarSelect != -1 and app.inputBarSelect == button:
-            border = "gold"
-        drawLabel(coordList[button], app.width-app.editorWidth+15,200+button*60, size = 30)
-        drawRect(app.width-app.editorWidth+80,200+button*60,app.editorWidth-110,50,fill = "lightGray", border = border, opacity = 50)
 
 def redrawAll(app):
     #draw points
@@ -166,11 +151,29 @@ def redrawAll(app):
         if i == app.selectedDotIndex:
             fill = "red"
         drawCircle(*point, 5, fill=fill)
+    #intermediate points
+
+
+
+
+
+
     #draw lines
-    for face in app.cube.faces:
+    for faceidx in range(len(app.cube.faces)):
+        r, g, b= random.randint(0,255), random.randint(0,255),random.randint(0,255)
+        polygon = []
+        #draws faces:
+        selectFaces = app.cube.getFaces(app.selectedDotIndex)
+        face = app.cube.faces[faceidx]
+        for i in face.order:
+            polygon.append(app.viewport_point_List[i][0])
+            polygon.append(app.viewport_point_List[i][1])
+        #print(app.colors, faceidx, len(app.colors))
+        drawPolygon(*polygon, fill = rgb(*app.cube.faces[faceidx].color), opacity = 50)
+        # draws lines
         for edge in face.getEdges():
             drawLine(*app.viewport_point_List[edge[0]],*app.viewport_point_List[edge[1]])
-    
+
     if app.editorMode:
         drawEditor(app)
         drawCircle(app.width - 40 - app.editorWidth, 30, 25, fill="Salmon")
@@ -202,10 +205,6 @@ def onKeyHold(app, key):
         app.r += 10
     elif "-" in key or "_" in key:
         app.r -= 10
-
     updateViewport(app)
 
-def main():
-    runApp(width=1000, height=800)
-
-main()
+runApp(width=1000, height=800)
