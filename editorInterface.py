@@ -27,57 +27,227 @@ def initiateEditor(app):
     app.viewport_point_List = {}
     updateViewport(app)
 
+def inputEditorButton(app, mouseX, mouseY):
+    button_height = 50
+    button_margin = 60
+    button_x_start = app.width - app.editorWidth + 80
+    button_x_end = button_x_start + app.editorWidth - 110
+    minus_x_center = app.width - app.editorWidth + 100
+    plus_x_center = app.width - app.editorWidth + 200
+    button_y_start_base = 200
+
+    # Check X, Y, Z buttons
+    for button in range(3):  # X, Y, Z buttons
+        button_y_start = button_y_start_base + button * button_margin
+        button_y_end = button_y_start + button_height
+
+        # Check for minus button (-)
+        if (mouseX - minus_x_center) ** 2 + (mouseY - (button_y_start + button_height // 2)) ** 2 <= 15 ** 2:
+            return (button, -1)  # Minus button clicked
+
+        # Check for plus button (+)
+        elif (mouseX - plus_x_center) ** 2 + (mouseY - (button_y_start + button_height // 2)) ** 2 <= 15 ** 2:
+            return (button, +1)  # Plus button clicked
+
+    return (-1, 0)  # No button clicked
+
+def inputEditorButton(app, mouseX, mouseY):
+    button_height = 50
+    button_margin = 60
+    button_x_start = app.width - app.editorWidth + 80
+    button_x_end = button_x_start + app.editorWidth - 110
+    minus_x_center = app.width - app.editorWidth + 100
+    plus_x_center = app.width - app.editorWidth + 200
+    button_y_start_base = 200
+
+    # Check X, Y, Z buttons
+    for button in range(3):  # X, Y, Z buttons
+        button_y_start = button_y_start_base + button * button_margin
+        button_y_end = button_y_start + button_height
+
+        # Check for minus button (-)
+        if (mouseX - minus_x_center) ** 2 + (mouseY - (button_y_start + button_height // 2)) ** 2 <= 15 ** 2:
+            return (button, -1)  # Minus button clicked
+
+        # Check for plus button (+)
+        elif (mouseX - plus_x_center) ** 2 + (mouseY - (button_y_start + button_height // 2)) ** 2 <= 15 ** 2:
+            return (button, +1)  # Plus button clicked
+
+    return (-1, 0)  # No button clicked
+
+
 def onMousePress(app, mouseX, mouseY):
-    eventHandler(app)
+    eventHandler(app)  # Update the button list based on the current mode
+
     if app.mode == "viewport":
         for button in app.buttonList:
-            #entering into editor mode
             if button.isClicked(mouseX, mouseY):
-                app.mode = "editorMan"
+                app.mode = "editorMan"  # Switch to editor mode
+
     elif app.mode == "editorMan":
+        shapeClicked = False
+
+        # Handle shape button clicks
         for button in app.buttonList:
-            #entering into editor mode
             if button.isClicked(mouseX, mouseY):
-                if button.name == "exit":
-                    app.mode = "viewport"
+                if button.buttonType == "circle" and button.name == "exit":
+                    app.mode = "viewport"  # Exit to viewport mode
+                elif button.buttonType == "rectangle" and button.name == "shapeSelector":
+                    app.selectedDotIndex = (button.shapeIndex, app.selectedDotIndex[1])  # Update selected shape
+                    shapeClicked = True
+                    break
+
+        if not shapeClicked:
+            # Handle clicks on shape points
+            for shapeIndex, viewPoints in app.viewport_point_List.items():
+                for dotIndex, (cx, cy) in enumerate(viewPoints):
+                    if distance(mouseX, mouseY, cx, cy) < 5:
+                        app.selectedDotIndex = (shapeIndex, dotIndex)
+                        shapeClicked = True
+                        break
+                if shapeClicked:
+                    break
+
+        inputIdx = inputEditorButton(app, mouseX, mouseY)
+        if inputIdx[0] != -1:
+            shapeIndex, dotIndex = app.selectedDotIndex
+            shape = app.collection.shapes[shapeIndex]
+            x, y, z = shape.points[dotIndex]
+
+            if inputIdx[0] == 0:
+                newPoint = (x + inputIdx[1], y, z)
+            elif inputIdx[0] == 1:
+                newPoint = (x, y + inputIdx[1], z)
+            else:
+                newPoint = (x, y, z + inputIdx[1])
+
+            shape.points[dotIndex] = newPoint
+            shape.rearrangeFaces()
+
     elif app.mode == "editorAddShape":
-        pass
+        for button in app.buttonList:
+            if button.isClicked(mouseX, mouseY):
+                if button.buttonType == "rectangle" and button.name == "confirm":
+                    category = 0 if app.newShapeCategory == "standard" else 1
+                    option = ["pyramid", "cube", "hexagon", "pentagon"].index(app.newShapeOption)
+                    app.collection.addShape(ShapeObject((0, 0, 0), category, option))
+                    app.mode = "editorMan"  # Return to editor mode
+                elif button.buttonType == "rectangle" and button.name == "shapeCategory":
+                    app.newShapeCategory = button.category
+                elif button.buttonType == "rectangle" and button.name == "shapeOption":
+                    app.newShapeOption = button.option
+
+    updateViewport(app)  # Always update the viewport after handling events
 
 def eventHandler(app):
-    app.buttonList = []
+    app.buttonList = []  # Clear existing buttons
 
     if app.mode == "viewport":
         app.keyDisabled = False
-        editor_button = ButtonHandler(buttonType="circle",cx=app.width - 40,cy=40,radius=25,name = "")
+        editor_button = ButtonHandler(
+            buttonType="circle",
+            cx=app.width - 40,
+            cy=40,
+            radius=25,
+            name="editor"
+        )
         app.buttonList.append(editor_button)
 
     elif app.mode == "editorMan":
         app.keyDisabled = False
+
+        # Add the "Exit" button
         exit_button = ButtonHandler(
             buttonType="circle",
             cx=app.width - 40 - app.editorWidth,
             cy=40,
             radius=25,
-            name = "exit"
+            name="exit"
         )
         app.buttonList.append(exit_button)
 
+        # Add shape selector buttons
+        button_width = (app.editorWidth - 60) // len(app.collection.shapes)
+        button_height = 50
+        x_start = app.width - app.editorWidth + 20
+        y_start = 80
+
+        for i, shape in enumerate(app.collection.shapes):
+            shape_button = ButtonHandler(
+                buttonType="rectangle",
+                x=x_start + i * (button_width + 10),
+                y=y_start,
+                width=button_width,
+                height=button_height,
+                name="shapeSelector",
+                shapeIndex=i
+            )
+            app.buttonList.append(shape_button)
+
     elif app.mode == "editorAddShape":
         app.keyDisabled = True
+
+        # Add category buttons
+        buttonWidth = (app.editorWidth - 40) // 2
+        categoryY = 100
+        standard_button = ButtonHandler(
+            buttonType="rectangle",
+            x=app.width - app.editorWidth + 20,
+            y=categoryY,
+            width=buttonWidth,
+            height=50,
+            name="shapeCategory",
+            category="standard"
+        )
+        prism_button = ButtonHandler(
+            buttonType="rectangle",
+            x=app.width - app.editorWidth + 40 + buttonWidth,
+            y=categoryY,
+            width=buttonWidth,
+            height=50,
+            name="shapeCategory",
+            category="prism"
+        )
+        app.buttonList.extend([standard_button, prism_button])
+
+        # Add shape option buttons
+        shapeOptions = ["pyramid", "cube", "hexagon", "pentagon"]
+        shapeY = 180
+        buttonHeight = 50
+        for i, option in enumerate(shapeOptions):
+            shape_button = ButtonHandler(
+                buttonType="rectangle",
+                x=app.width - app.editorWidth + 20,
+                y=shapeY + i * (buttonHeight + 10),
+                width=app.editorWidth - 40,
+                height=buttonHeight,
+                name="shapeOption",
+                option=option
+            )
+            app.buttonList.append(shape_button)
+
+        # Add confirm button
+        confirmY = shapeY + len(shapeOptions) * (buttonHeight + 10) + 20
         confirm_button = ButtonHandler(
             buttonType="rectangle",
             x=app.width - app.editorWidth + 20,
-            y=300,
+            y=confirmY,
             width=app.editorWidth - 40,
-            height=50
+            height=50,
+            name="confirm"
         )
         app.buttonList.append(confirm_button)
+
 
 def redrawAll(app):
     if app.mode == "viewport":
         drawViewport(app)
+        drawCircle(app.width - 40, 40, 25, fill='lightSkyBlue')
+        drawLabel("Editor", app.width - 40, 40, size=12, bold=True, fill="darkblue")
     elif app.mode == "editorMan":
         drawViewport(app)
+        drawCircle(app.width - 40 - app.editorWidth, 40, 25, fill="Salmon")
+        drawLabel("Exit", app.width - 40 - app.editorWidth, 40, size=12, bold=True, fill="maroon")
         drawEditorForManipulation(app)
     elif app.mode == "editorAddShape":
         drawViewport(app)
@@ -122,12 +292,12 @@ def drawEditorForManipulation(app):
     selectFaces = selectedShape.getFaces(dotIndex)
 
     y_start = 80
-    x_start = app.width - app.editorWidth + 20
-    button_width = (app.editorWidth - 60) // len(app.collection.shapes)
+    x_start = app.width - app.editorWidth + 40
+    button_width = (app.editorWidth - 100) // len(app.collection.shapes)
     button_height = 50
 
     for i, shape in enumerate(app.collection.shapes):
-        x = x_start + i * (button_width + 10)
+        x = x_start + i * (button_width + 40)
 
         drawRect(x + 10, y_start, button_width - 20, button_height, fill="skyblue")
         drawCircle(x + 10, y_start + button_height / 2, button_height / 2, fill="skyblue")
@@ -213,8 +383,6 @@ def updateViewport(app):
         app.viewport_point_List[j] = tempShapeviewList
 
 def drawViewport(app):
-    drawCircle(app.width - 40, 40, 25, fill='lightSkyBlue')
-    drawLabel("Editor", app.width - 40, 40, size=12, bold=True, fill="darkblue")
     for shapeIndex, viewPoints in app.viewport_point_List.items():
         for dotIndex, point in enumerate(viewPoints):
             fill = "lightSalmon"

@@ -2,6 +2,7 @@ class ButtonHandler:
     def __init__(self, buttonType, **kwargs):
         self.buttonType = buttonType  # 'rectangle', 'circle', or 'rounded'
         self.name = kwargs.get("name")
+        self.shapeIndex = kwargs.get("shapeIndex")
         if buttonType == "rectangle":
             self.x = kwargs.get("x")
             self.y = kwargs.get("y")
