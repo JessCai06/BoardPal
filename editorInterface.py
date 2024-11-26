@@ -92,6 +92,9 @@ def onMousePress(app, mouseX, mouseY):
             if button.isClicked(mouseX, mouseY):
                 if button.buttonType == "circle" and button.name == "addshape" and len(app.collection.shapes) <= 1:
                     app.mode = "editorAddShape" 
+                elif button.buttonType == "circle" and button.name == "deleteshape":
+                    print(len(app.collection.shapes))
+                    app.collection.removeShape(app.selectedDotIndex[0])
                 elif button.buttonType == "circle" and button.name == "exit":
                     app.mode = "viewport"  
                 elif button.buttonType == "rectangle" and button.name == "shapeSelector":
@@ -142,6 +145,8 @@ def onMousePress(app, mouseX, mouseY):
 
 def eventHandler(app):
     app.buttonList = []  
+    if len(app.collection.shapes) == 0:
+        app.mode = "editorAddShape"
 
     if app.mode == "viewport":
         app.keyDisabled = False
@@ -174,8 +179,17 @@ def eventHandler(app):
         )
         app.buttonList.append(add_button)
 
+        delete_button = ButtonHandler(
+            buttonType="circle",
+            cx=app.width - 40 - app.editorWidth,
+            cy=160,
+            radius=25,
+            name="deleteshape"
+        )
+        app.buttonList.append(delete_button)
+
         # Add shape selector buttons
-        button_width = (app.editorWidth - 60) // len(app.collection.shapes)
+        button_width = (app.editorWidth - 60) 
         button_height = 50
         x_start = app.width - app.editorWidth + 20
         y_start = 80
@@ -241,25 +255,35 @@ def eventHandler(app):
         )
         app.buttonList.append(confirmButton)
 
-
-
 def redrawAll(app):
     print(app.mode)
-    if app.mode == "viewport":
-        drawViewport(app)
-        drawCircle(app.width - 40, 40, 25, fill='lightSkyBlue')
-        drawLabel("Editor", app.width - 40, 40, size=12, bold=True, fill="darkblue")
-    elif app.mode == "editorMan":
-        drawViewport(app)
-        drawCircle(app.width - 40 - app.editorWidth, 40, 25, fill="Salmon")
-        drawLabel("Exit", app.width - 40 - app.editorWidth, 40, size=12, bold=True, fill="maroon")
-        drawCircle(app.width - 40 - app.editorWidth, 100, 25, fill='lightSkyBlue')
-        drawLabel("Add", app.width - 40 - app.editorWidth, 100, size=12, bold=True, fill="darkblue")
-        drawEditorForManipulation(app)
-    elif app.mode == "editorAddShape":
+    if len(app.collection.shapes) == 0:
         drawViewport(app)
         drawRect(0, 0, app.width, app.height, fill="black", opacity=50)
-        drawAddShapePanel(app)   
+        drawAddShapePanel(app)
+    else:   
+        if app.mode == "viewport":
+            drawViewport(app)
+            drawCircle(app.width - 40, 40, 25, fill='lightSkyBlue')
+            drawLabel("Editor", app.width - 40, 40, size=12, bold=True, fill="darkblue")
+        elif app.mode == "editorMan":
+            drawViewport(app)
+            drawCircle(app.width - 40 - app.editorWidth, 40, 25, fill="Salmon")
+            drawLabel("Exit", app.width - 40 - app.editorWidth, 40, size=12, bold=True, fill="maroon")
+            #can't add a shape when there are 2 or more shapes already
+            if len(app.collection.shapes) >= 2:
+                drawCircle(app.width - 40 - app.editorWidth, 100, 25, fill='lightGray')
+                drawLabel("Add", app.width - 40 - app.editorWidth, 100, size=12, bold=True, fill="Gray")
+            else: 
+                drawCircle(app.width - 40 - app.editorWidth, 100, 25, fill='lightSkyBlue')
+                drawLabel("Add", app.width - 40 - app.editorWidth, 100, size=12, bold=True, fill="darkblue")
+            drawCircle(app.width - 40 - app.editorWidth, 160, 25, fill='lightSkyBlue')
+            drawLabel("Delete", app.width - 40 - app.editorWidth, 160, size=12, bold=True, fill="darkblue")
+            drawEditorForManipulation(app)
+        elif app.mode == "editorAddShape":
+            drawViewport(app)
+            drawRect(0, 0, app.width, app.height, fill="black", opacity=50)
+            drawAddShapePanel(app)   
 
 def drawAddShapePanel(app):
     panelX = app.width - app.editorWidth

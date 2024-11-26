@@ -19,6 +19,14 @@ class shapeCollectionObject:
             newSpawn = (0, 0, int(self.shapes[0].calculateRadius() + shape.calculateRadius())) 
             return newSpawn
         return (-1,-1,-1)
+    
+    def removeShape(self, index):
+        if len(self.shapes) == 0 or index > len(self.shapes):
+            return
+        if len(self.shapes) == 1:
+            self.shapes.pop()
+        else:
+            self.shapes.pop(index)        
 
     def addShape(self, shape):
         if len(self.shapes) == 0 :
