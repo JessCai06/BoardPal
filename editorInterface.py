@@ -9,6 +9,7 @@ import random
 def onAppStart(app):
     app.mode = "viewport"
     app.buttonList = []
+    app.defaultNewShape = (1,2)
     initiateWelcome(app)
     initiateEditor(app)
 
@@ -49,7 +50,7 @@ def inputEditorButton(app, mouseX, mouseY):
         elif (mouseX - plus_x_center) ** 2 + (mouseY - (button_y_start + button_height // 2)) ** 2 <= 15 ** 2:
             return (button, +1)  # Plus button clicked
 
-    return (-1, 0)  # No button clicked
+    return (-1, 0)  
 
 def inputEditorButton(app, mouseX, mouseY):
     button_height = 50
@@ -73,8 +74,7 @@ def inputEditorButton(app, mouseX, mouseY):
         elif (mouseX - plus_x_center) ** 2 + (mouseY - (button_y_start + button_height // 2)) ** 2 <= 15 ** 2:
             return (button, +1)  # Plus button clicked
 
-    return (-1, 0)  # No button clicked
-
+    return (-1, 0)  
 
 def onMousePress(app, mouseX, mouseY):
     eventHandler(app)  # Update the button list based on the current mode
@@ -82,7 +82,7 @@ def onMousePress(app, mouseX, mouseY):
     if app.mode == "viewport":
         for button in app.buttonList:
             if button.isClicked(mouseX, mouseY):
-                app.mode = "editorMan"  # Switch to editor mode
+                app.mode = "editorMan"  
 
     elif app.mode == "editorMan":
         shapeClicked = False
@@ -90,10 +90,12 @@ def onMousePress(app, mouseX, mouseY):
         # Handle shape button clicks
         for button in app.buttonList:
             if button.isClicked(mouseX, mouseY):
-                if button.buttonType == "circle" and button.name == "exit":
-                    app.mode = "viewport"  # Exit to viewport mode
+                if button.buttonType == "circle" and button.name == "addshape" and len(app.collection.shapes) <= 1:
+                    app.mode = "editorAddShape" 
+                elif button.buttonType == "circle" and button.name == "exit":
+                    app.mode = "viewport"  
                 elif button.buttonType == "rectangle" and button.name == "shapeSelector":
-                    app.selectedDotIndex = (button.shapeIndex, app.selectedDotIndex[1])  # Update selected shape
+                    app.selectedDotIndex = (button.shapeIndex, app.selectedDotIndex[1])  
                     shapeClicked = True
                     break
 
@@ -127,20 +129,19 @@ def onMousePress(app, mouseX, mouseY):
     elif app.mode == "editorAddShape":
         for button in app.buttonList:
             if button.isClicked(mouseX, mouseY):
-                if button.buttonType == "rectangle" and button.name == "confirm":
-                    category = 0 if app.newShapeCategory == "standard" else 1
-                    option = ["pyramid", "cube", "hexagon", "pentagon"].index(app.newShapeOption)
-                    app.collection.addShape(ShapeObject((0, 0, 0), category, option))
-                    app.mode = "editorMan"  # Return to editor mode
-                elif button.buttonType == "rectangle" and button.name == "shapeCategory":
-                    app.newShapeCategory = button.category
-                elif button.buttonType == "rectangle" and button.name == "shapeOption":
-                    app.newShapeOption = button.option
+                print(button.buttonType, button.name)
+                if button.buttonType == "rectangle" and button.name == "Create!":
+                    app.collection.addShape(ShapeObject((0, 0, 0), *app.defaultNewShape))
+                    app.mode = "editorMan" 
+                elif button.buttonType == "rectangle" and type(button.name) == tuple:
+                    app.defaultNewShape = button.name
+    elif app.mode == "ERROR":
+        pass
 
-    updateViewport(app)  # Always update the viewport after handling events
+    updateViewport(app)  
 
 def eventHandler(app):
-    app.buttonList = []  # Clear existing buttons
+    app.buttonList = []  
 
     if app.mode == "viewport":
         app.keyDisabled = False
@@ -155,8 +156,6 @@ def eventHandler(app):
 
     elif app.mode == "editorMan":
         app.keyDisabled = False
-
-        # Add the "Exit" button
         exit_button = ButtonHandler(
             buttonType="circle",
             cx=app.width - 40 - app.editorWidth,
@@ -165,6 +164,15 @@ def eventHandler(app):
             name="exit"
         )
         app.buttonList.append(exit_button)
+
+        add_button = ButtonHandler(
+            buttonType="circle",
+            cx=app.width - 40 - app.editorWidth,
+            cy=100,
+            radius=25,
+            name="addshape"
+        )
+        app.buttonList.append(add_button)
 
         # Add shape selector buttons
         button_width = (app.editorWidth - 60) // len(app.collection.shapes)
@@ -184,62 +192,59 @@ def eventHandler(app):
             )
             app.buttonList.append(shape_button)
 
+
     elif app.mode == "editorAddShape":
-        app.keyDisabled = True
+        panelX = app.width - app.editorWidth
 
-        # Add category buttons
-        buttonWidth = (app.editorWidth - 40) // 2
-        categoryY = 100
-        standard_button = ButtonHandler(
-            buttonType="rectangle",
-            x=app.width - app.editorWidth + 20,
-            y=categoryY,
-            width=buttonWidth,
-            height=50,
-            name="shapeCategory",
-            category="standard"
-        )
-        prism_button = ButtonHandler(
-            buttonType="rectangle",
-            x=app.width - app.editorWidth + 40 + buttonWidth,
-            y=categoryY,
-            width=buttonWidth,
-            height=50,
-            name="shapeCategory",
-            category="prism"
-        )
-        app.buttonList.extend([standard_button, prism_button])
-
-        # Add shape option buttons
-        shapeOptions = ["pyramid", "cube", "hexagon", "pentagon"]
-        shapeY = 180
-        buttonHeight = 50
-        for i, option in enumerate(shapeOptions):
-            shape_button = ButtonHandler(
+        # Standard Shapes Buttons
+        categoryY = 170
+        standardShapes = ["Pyramid", "Cube", "Hexagon", "Pentagon"]
+        buttonHeight = 30
+        shapeY = categoryY + 30
+        for i, shape in enumerate(standardShapes):
+            textWidth = len(shape) * 10
+            button = ButtonHandler(
                 buttonType="rectangle",
-                x=app.width - app.editorWidth + 20,
-                y=shapeY + i * (buttonHeight + 10),
-                width=app.editorWidth - 40,
+                x=panelX + 20,
+                y=shapeY + i * (buttonHeight + 5),
+                width=textWidth,
                 height=buttonHeight,
-                name="shapeOption",
-                option=option
+                name=(0,i)
             )
-            app.buttonList.append(shape_button)
+            app.buttonList.append(button)
 
-        # Add confirm button
-        confirmY = shapeY + len(shapeOptions) * (buttonHeight + 10) + 20
-        confirm_button = ButtonHandler(
+        # Prisms Buttons
+        prismY = shapeY + len(standardShapes) * (buttonHeight + 5) + 20
+        prismShapes = ["Triangular", "Square", "Hexagonal", "Pentagonal"]
+        prismY += 30
+        for i, shape in enumerate(prismShapes):
+            textWidth = len(shape) * 10
+            button = ButtonHandler(
+                buttonType="rectangle",
+                x=panelX + 20,
+                y=prismY + i * (buttonHeight + 5),
+                width=textWidth,
+                height=buttonHeight,
+                name=(1,i)
+            )
+            app.buttonList.append(button)
+
+        # Confirm Button
+        confirmY = prismY + len(prismShapes) * (buttonHeight + 5) + 20
+        confirmButton = ButtonHandler(
             buttonType="rectangle",
-            x=app.width - app.editorWidth + 20,
+            x=panelX + 20,
             y=confirmY,
             width=app.editorWidth - 40,
-            height=50,
-            name="confirm"
+            height=40,
+            name="Create!"
         )
-        app.buttonList.append(confirm_button)
+        app.buttonList.append(confirmButton)
+
 
 
 def redrawAll(app):
+    print(app.mode)
     if app.mode == "viewport":
         drawViewport(app)
         drawCircle(app.width - 40, 40, 25, fill='lightSkyBlue')
@@ -248,6 +253,8 @@ def redrawAll(app):
         drawViewport(app)
         drawCircle(app.width - 40 - app.editorWidth, 40, 25, fill="Salmon")
         drawLabel("Exit", app.width - 40 - app.editorWidth, 40, size=12, bold=True, fill="maroon")
+        drawCircle(app.width - 40 - app.editorWidth, 100, 25, fill='lightSkyBlue')
+        drawLabel("Add", app.width - 40 - app.editorWidth, 100, size=12, bold=True, fill="darkblue")
         drawEditorForManipulation(app)
     elif app.mode == "editorAddShape":
         drawViewport(app)
@@ -256,31 +263,49 @@ def redrawAll(app):
 
 def drawAddShapePanel(app):
     panelX = app.width - app.editorWidth
-    drawRect(panelX, 0, app.editorWidth, app.height, fill="lightBlue", opacity=100)
-    drawLabel("Add New Shape", panelX + app.editorWidth / 2, 40, size=25, bold=True)
+    drawRect(panelX, 0, app.editorWidth, app.height, fill=rgb(128, 196, 233), opacity=100)
+    drawLabel("Editor", panelX + app.editorWidth / 2, 40, size=25, bold=True)
+    drawLabel("Add New Shape", panelX + app.editorWidth / 2, 80, size=20, bold=True)
 
-    # Category buttons (Standard / Prism)
-    categoryY = 100
-    buttonWidth = (app.editorWidth - 40) // 2
-    drawRect(panelX + 20, categoryY, buttonWidth, 50, fill="skyblue", border="black", borderWidth=2)
-    drawLabel("Standard", panelX + 20 + buttonWidth / 2, categoryY + 25, size=14, bold=True)
+    centerY = 120
+    drawLabel("Spawn Point:", panelX + 20, centerY, size=14, align="left", bold=True)
+    spawn = app.collection.getNewSpawnPoint(ShapeObject((0, 0, 0), *app.defaultNewShape))
+    drawLabel(spawn, panelX + 150, centerY, size=14, bold=True)
 
-    drawRect(panelX + 40 + buttonWidth, categoryY, buttonWidth, 50, fill="skyblue", border="black", borderWidth=2)
-    drawLabel("Prism", panelX + 40 + buttonWidth / 2 + buttonWidth, categoryY + 25, size=14, bold=True)
+    # Standard Shapes Section
+    categoryY = centerY + 50
+    drawLabel("Standard Shapes", panelX + 20, categoryY, size=16, bold=True, align="left")
 
-    # Shape buttons (Pyramid, Cube, etc.)
-    shapeY = 180
-    shapeOptions = ["Pyramid", "Cube", "Hexagon", "Pentagon"]
-    buttonHeight = 50
-    for i, shape in enumerate(shapeOptions):
-        drawRect(panelX + 20, shapeY + i * (buttonHeight + 10), app.editorWidth - 40, buttonHeight, fill="lightGray",
-                 border="black", borderWidth=2)
-        drawLabel(shape, panelX + app.editorWidth / 2, shapeY + i * (buttonHeight + 10) + buttonHeight / 2, size=14, bold=True)
+    standardShapes = ["Pyramid", "Cube", "Hexagon", "Pentagon"]
+    buttonHeight = 30
+    shapeY = categoryY + 30
+    for i, shape in enumerate(standardShapes):
+        textWidth = len(shape) * 10 
+        fill = rgb(255, 246, 233)
+        if app.defaultNewShape == (0,i):
+            fill = "orange"
+        drawRect(panelX + 20, shapeY + i * (buttonHeight + 5), textWidth, buttonHeight, fill=fill)
+        drawLabel(shape, panelX + 20 + textWidth / 2, shapeY + i * (buttonHeight + 5) + buttonHeight / 2, size=12, bold=True)
 
-    # Confirm button
-    confirmY = shapeY + len(shapeOptions) * (buttonHeight + 10) + 20
-    drawRect(panelX + 20, confirmY, app.editorWidth - 40, 50, fill="green")
-    drawLabel("Confirm", panelX + app.editorWidth / 2, confirmY + 25, size=16, bold=True, fill="white")
+    # Prisms Section
+    prismY = shapeY + len(standardShapes) * (buttonHeight + 5) + 20
+    drawLabel("Prisms", panelX + 20, prismY, size=16, bold=True, align="left")
+
+    prismShapes = ["Triangular", "Square", "Hexagonal", "Pentagonal"]
+    prismY += 30
+    for i, shape in enumerate(prismShapes):
+        textWidth = len(shape) * 10 
+        fill = rgb(255, 246, 233)
+        if app.defaultNewShape == (1,i):
+            fill = "orange"
+        drawRect(panelX + 20, prismY + i * (buttonHeight + 5), textWidth, buttonHeight, fill=fill)
+        drawLabel(shape, panelX + 20 + textWidth / 2, prismY + i * (buttonHeight + 5) + buttonHeight / 2, size=12, bold=True)
+
+    # Confirm Button
+    confirmY = prismY + len(prismShapes) * (buttonHeight + 5) + 20
+    drawRect(panelX + 20, confirmY, app.editorWidth - 40, 40, fill=rgb(255, 127, 62), border="black", borderWidth=2)
+    drawLabel("Create!", panelX + app.editorWidth / 2, confirmY + 20, size=14, bold=True, fill="white")
+
 
 def drawEditorForManipulation(app):
     drawRect(app.width - app.editorWidth, 0, app.editorWidth, app.height, fill="powderBlue", opacity=80)
@@ -289,7 +314,7 @@ def drawEditorForManipulation(app):
     shapeIndex, dotIndex = app.selectedDotIndex
     selectedShape = app.collection.shapes[shapeIndex]
     selectedPoint = selectedShape.points[dotIndex]
-    selectFaces = selectedShape.getFaces(dotIndex)
+    selectFaces = selectedShape.getFacesAdjacentToPoint(dotIndex)
 
     y_start = 80
     x_start = app.width - app.editorWidth + 40
@@ -352,8 +377,16 @@ def transformToViewport(app, point):
 def onKeyHold(app, key):
     if not app.keyDisabled:
         thetaX, thetaY, thetaZ = app.camTheta  
-        if "8" in key:
+        if "0" in key:
             app.collection.addShape(ShapeObject((0,0,0),1,0))
+        if "1" in key:
+            app.collection.addShape(ShapeObject((0,0,0),1,1))
+        if "2" in key:
+            app.collection.addShape(ShapeObject((0,0,0),1,2))
+        if "3" in key:
+            app.collection.addShape(ShapeObject((0,0,0),1,3))
+        if "4" in key:
+            app.collection.addShape(ShapeObject((0,0,0),0,3))
         if "right" in key:
             app.camTheta = (thetaX + 2, thetaY, thetaZ)
         elif "left" in key:

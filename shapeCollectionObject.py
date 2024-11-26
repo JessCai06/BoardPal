@@ -12,12 +12,19 @@ class shapeCollectionObject:
     def __init__(self):
         self.shapes = []
 
+    def getNewSpawnPoint(self,shape):
+        if len(self.shapes) == 0 :
+            return (0,0,0)
+        elif len(self.shapes) < 2:
+            newSpawn = (0, 0, int(self.shapes[0].calculateRadius() + shape.calculateRadius())) 
+            return newSpawn
+        return (-1,-1,-1)
+
     def addShape(self, shape):
         if len(self.shapes) == 0 :
             self.shapes.append(shape)
         elif len(self.shapes) < 2:
-            #print("*******************", self.shapes[0].calculateRadius())
-            newSpawn = (0, 0, int(self.shapes[0].calculateRadius() + shape.calculateRadius())) 
+            newSpawn = self.getNewSpawnPoint(shape)
             shape.moveCenter(newSpawn)
             self.shapes.append(shape)
         

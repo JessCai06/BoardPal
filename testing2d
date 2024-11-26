@@ -1,0 +1,42 @@
+from cmu_graphics import *
+from ShapeObject import ShapeObject
+from FaceObject import FaceObject
+from shapeCollectionObject import shapeCollectionObject
+from buttonHandler import ButtonHandler
+import math
+import random
+
+
+def convertToViewport(app, x, y):
+    scale = app.viewportScale if hasattr(app, "viewportScale") else 50
+    centerX = app.width / 2
+    centerY = app.height / 2
+    viewportX = centerX + x * scale
+    viewportY = centerY - y * scale
+    return viewportX, viewportY
+
+
+def onAppStart(app):
+    app.viewportScale = 50
+    app.shape = ShapeObject((0, 0, 0), 1, 1)
+    app.flattened_faces = app.shape.flattenTo2D()
+
+
+def redrawAll(app):
+    print(app.flattened_faces)
+    for face_points, color in app.flattened_faces:
+        viewport_points = [convertToViewport(app, x, y) for x, y in face_points]
+        drawPolygon(
+            *[coord for point in viewport_points for coord in point],
+            fill=rgb(*color),
+            opacity=80,
+        )
+        drawPolygon(
+            *[coord for point in viewport_points for coord in point],
+            fill=None,
+            border="black",
+            borderWidth=2,
+        )
+
+
+runApp(width=800, height=600)

@@ -1,123 +1,105 @@
 from FaceObject import FaceObject
+from flattenObj import Shape2DObject
 import math
 
 class ShapeObject:
     def __init__(self, pos, category, option):
         self.x, self.y, self.z = pos
-        shapie_dict = self.generateShapeData(category, option)
-        points = shapie_dict["points"]
-        order = shapie_dict["order"]
-        self.points = []
-        for coord in points:
-            temp = (coord[0] + self.x, coord[1] + self.y, coord[2] + self.z)
-            self.points.append(temp)
-        self.faces = []
-        for i in range(len(order)):
-            face = order[i]
-            tempFace = FaceObject(i, self.points, face)
-            self.faces.append(tempFace)
-
-    def moveCenter(self, newPos):
-        """
-        Move the center of the shape to a new position, updating all vertices.
-        :param newPos: A tuple (newX, newY, newZ) representing the new center position.
-        """
-        print("newpos", newPos)
-        offsetX = newPos[0] - self.x
-        offsetY = newPos[1] - self.y
-        offsetZ = newPos[2] - self.z
-
-        # Update the center position
-        self.x, self.y, self.z = newPos
-
-        # Update each point to maintain relative positions
-        for i, coord in enumerate(self.points):
-            self.points[i] = (
-                coord[0] + offsetX,
-                coord[1] + offsetY,
-                coord[2] + offsetZ
-            )
-
-    def getFaces(self, indexInPoints):
-        facesThisPointIsIn = []
-        for face in self.faces:
-            if indexInPoints in face.order:
-                facesThisPointIsIn.append(face.index)
-        return facesThisPointIsIn
-    
-    def find_midpoint(coord1, coord2):
-        if len(coord1) != len(coord2):
-            raise ValueError("Coordinates must have the same number of dimensions")
-        return tuple((c1 + c2) / 2 for c1, c2 in zip(coord1, coord2))
-
-
-# references: I am using the formula given by this website https://www.cuemath.com/geometry/coplanar/
-    def isCoplanar(self, points):
-        """
-        this checks if the last point of the list
-        is co-planar with the rest of the points in the faceobject
-        """
-        if len(points) < 4:
-            return True  
-        
-        # since we only change one of the points at one time, assume that the all previous points are coplanar.
-        p0 = points[0]
-        p1 = points[1]
-        p2 = points[2]
-        p3 = points[3]
-
-        v1 = self.listDifference(p1,p0)
-        v2 = self.listDifference(p2,p0)
-        #the last list difference
-        v3 = self.listDifference(p3,p0)
-
-        normal = self.cross(v1, v2)
-
-        product = 0
-        for i in range(len(normal)):
-            product += normal[i] * v3[i]
-        return product == 0
-    
-    def cross(self, v1, v2):
-        #LIST HAS TO HAVE LEN OF 3
-        return [
-            v1[1] * v2[2] - v1[2] * v2[1],  
-            v1[2] * v2[0] - v1[0] * v2[2],  
-            v1[0] * v2[1] - v1[1] * v2[0]   
+        shape_data = self.generateShapeData(category, option)
+        self.points = [(x + self.x, y + self.y, z + self.z) for x, y, z in shape_data["points"]]
+        self.faces = [
+            FaceObject(index, self.points, face)
+            for index, face in enumerate(shape_data["order"])
         ]
 
-    def listDifference(self, a, b):
-        empty = []
-        for i in range(3):
-            empty.append(a[i]-b[i])
-        return empty
+    def moveCenter(self, newPos):
+        offsetX, offsetY, offsetZ = newPos[0] - self.x, newPos[1] - self.y, newPos[2] - self.z
+        self.x, self.y, self.z = newPos
+        self.points = [(x + offsetX, y + offsetY, z + offsetZ) for x, y, z in self.points]
+
+    def getFacesAdjacentToPoint(self, indexInPoints):
+        return [face.index for face in self.faces if indexInPoints in face.order]
+    
+    def getEdges(self):
+        edgeSet = set()  
+        for face in self.faces:
+            for start_idx, end_idx in face.getEdges():
+                start = self.points[start_idx]
+                end = self.points[end_idx]
+
+                edge = tuple(sorted((start, end)))  
+                edgeSet.add(edge)
+
+        return list(edgeSet)  
+
+    def isCoplanar(self, points):
+        if len(points) < 4:
+            return True
+        v1 = self.vectorDifference(points[1], points[0])
+        v2 = self.vectorDifference(points[2], points[0])
+        v3 = self.vectorDifference(points[3], points[0])
+        normal = self.crossProduct(v1, v2)
+        return sum(normal[i] * v3[i] for i in range(3)) == 0
+
+    def vectorDifference(self, a, b):
+        return [a[i] - b[i] for i in range(3)]
+
+    def crossProduct(self, v1, v2):
+        return [
+            v1[1] * v2[2] - v1[2] * v2[1],
+            v1[2] * v2[0] - v1[0] * v2[2],
+            v1[0] * v2[1] - v1[1] * v2[0],
+        ]
 
     def calculateRadius(self):
-        max_distance = 0
-        for point in self.points:
-            distance = math.sqrt(
-                (point[0] - self.x) ** 2 +
-                (point[1] - self.y) ** 2 +
-                (point[2] - self.z) ** 2
-            )
-            if distance > max_distance:
-                max_distance = distance
-        return max_distance
+        return max(
+            math.sqrt((x - self.x) ** 2 + (y - self.y) ** 2 + (z - self.z) ** 2)
+            for x, y, z in self.points
+        )
 
     def rearrangeFaces(self):
         new_faces = []
         for face in self.faces:
-            # Gather the points for this face
             face_points = [self.points[i] for i in face.order]
-
             if self.isCoplanar(face_points):
-                new_faces.append(face)  
+                new_faces.append(face)
             else:
                 for i in range(2, len(face.order)):
-                    triangle_order = [face.order[0], face.order[i-1], face.order[i]]
-                    new_faces.append(FaceObject(face.index, self.points, triangle_order))
-        self.faces = new_faces 
-        print(self.faces) 
+                    new_faces.append(FaceObject(
+                        face.index, self.points, [face.order[0], face.order[i - 1], face.order[i]]
+                    ))
+        self.faces = new_faces
+
+    def mergeShape(self, other):
+        shared_face = next(
+            (f1 for f1 in self.faces for f2 in other.faces if f1 == f2),
+            None
+        )
+        if not shared_face:
+            print("Shapes cant merge")
+            return None
+
+        merged_points = self.points[:]
+        point_mapping = {
+            i: merged_points.index(pt) if pt in merged_points else len(merged_points) + i
+            for i, pt in enumerate(other.points)
+        }
+        merged_points += [pt for pt in other.points if pt not in merged_points]
+
+        merged_faces = self.faces[:]
+        for face in other.faces:
+            new_order = [point_mapping[idx] for idx in face.order]
+            merged_faces.append(FaceObject(face.index + len(self.faces), merged_points, new_order))
+
+        return ShapeObject((self.x + other.x) / 2, (self.y + other.y) / 2, (self.z + other.z) / 2, 0, 0)
+
+    def flattenTo2D(self):
+        visited_faces = set()
+        flattened_faces = []
+        stack = [(self.faces[0], (0, 0))]
+    
+    def bloom(self, hi):
+        pass
 
     def generateShapeData(self, category, option):
         """
@@ -214,8 +196,3 @@ class ShapeObject:
             raise ValueError("Invalid category")
 
         return {"points": points, "order": order}
-
-
-
-shape =ShapeObject((0,0,0),1,3)
-print(shape.calculateRadius())
