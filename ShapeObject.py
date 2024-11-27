@@ -1,21 +1,32 @@
 from FaceObject import FaceObject
 from flattenObj import Shape2DObject
 import math
+import copy
 
 class ShapeObject:
     def __init__(self, pos, category, option):
         self.x, self.y, self.z = pos
-        shape_data = self.generateShapeData(category, option)
+        shape_data = copy.deepcopy(self.generateShapeData(category, option))
         self.points = [(x + self.x, y + self.y, z + self.z) for x, y, z in shape_data["points"]]
         self.faces = [
             FaceObject(index, self.points, face)
             for index, face in enumerate(shape_data["order"])
         ]
+        self.moveCenter(pos)
+
+    def __repr__(self):
+        return f"center at {self.x, self.y, self.z} --- and points at {self.points}"
 
     def moveCenter(self, newPos):
         offsetX, offsetY, offsetZ = newPos[0] - self.x, newPos[1] - self.y, newPos[2] - self.z
         self.x, self.y, self.z = newPos
-        self.points = [(x + offsetX, y + offsetY, z + offsetZ) for x, y, z in self.points]
+        tempPoints = []
+        for point in self.points:
+            x, y, z = point
+            tempPoints.append((x + offsetX, y + offsetY, z + offsetZ))
+        self.points = tempPoints
+        for face in self.faces:
+            face.points = tempPoints
 
     def getFacesAdjacentToPoint(self, indexInPoints):
         return [face.index for face in self.faces if indexInPoints in face.order]
@@ -26,7 +37,6 @@ class ShapeObject:
             for start_idx, end_idx in face.getEdges():
                 start = self.points[start_idx]
                 end = self.points[end_idx]
-
                 edge = tuple(sorted((start, end)))  
                 edgeSet.add(edge)
 
@@ -68,30 +78,7 @@ class ShapeObject:
                     new_faces.append(FaceObject(
                         face.index, self.points, [face.order[0], face.order[i - 1], face.order[i]]
                     ))
-        self.faces = new_faces
-
-    def mergeShape(self, other):
-        shared_face = next(
-            (f1 for f1 in self.faces for f2 in other.faces if f1 == f2),
-            None
-        )
-        if not shared_face:
-            print("Shapes cant merge")
-            return None
-
-        merged_points = self.points[:]
-        point_mapping = {
-            i: merged_points.index(pt) if pt in merged_points else len(merged_points) + i
-            for i, pt in enumerate(other.points)
-        }
-        merged_points += [pt for pt in other.points if pt not in merged_points]
-
-        merged_faces = self.faces[:]
-        for face in other.faces:
-            new_order = [point_mapping[idx] for idx in face.order]
-            merged_faces.append(FaceObject(face.index + len(self.faces), merged_points, new_order))
-
-        return ShapeObject((self.x + other.x) / 2, (self.y + other.y) / 2, (self.z + other.z) / 2, 0, 0)
+        self.faces = new_faces        
 
     def flattenTo2D(self):
         visited_faces = set()
@@ -102,13 +89,13 @@ class ShapeObject:
         pass
 
     def generateShapeData(self, category, option):
+
         """
         3D points and face
         param
             category (str): "standard" or "prism"
             option (int): 0 (triangle/pyramid), 1 (cube/square), 2 (hex), 3 (pent)
         """
-        print(category)
         #STANDARD
         if category == 0:
             if option == 0: 
@@ -196,3 +183,4 @@ class ShapeObject:
             raise ValueError("Invalid category")
 
         return {"points": points, "order": order}
+    

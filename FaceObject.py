@@ -34,17 +34,27 @@ class FaceObject:
             edges.append(line)
         edges.append((self.order[0], self.order[-1]))
         return edges
+    
+    def getUsedPoints(self):
+        temp = []
+        for e in self.order:
+            temp.append(self.points[e])
+        return temp
 
     def __eq__(self, other):
-        #if they have the same number of points (quad == triangle)
-        if len(self.order) != len(self.order):
+        if other is None or len(self.order) != len(other.order):
             return False
-        #if all of their points are the same
-        for edge in self.getEdgePoints():
-            if edge not in other.getEdgePoints():
-                return False
-        return True
 
-    def __str__(self):
+        # Compare using sets for geometric equality
+        print(self.getUsedPoints(), other.getUsedPoints())
+        return set(self.getUsedPoints()) == set(other.getUsedPoints())
+
+
+    def __repr__(self):
         edges_str = ', '.join([f"({edge[0]}, {edge[1]})" for edge in self.getEdges()])
         return f"FaceObject >>>> index={self.index}, order={self.order}, edges=[{edges_str}])"
+    
+    def __hash__(self) -> int:
+        return hash(tuple(sorted(self.getUsedPoints())))
+
+    

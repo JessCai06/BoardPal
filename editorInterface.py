@@ -92,6 +92,9 @@ def onMousePress(app, mouseX, mouseY):
             if button.isClicked(mouseX, mouseY):
                 if button.buttonType == "circle" and button.name == "addshape" and len(app.collection.shapes) <= 1:
                     app.mode = "editorAddShape" 
+                elif button.buttonType == "circle" and button.name == "merge" and len(app.collection.shapes) == 2 and app.collection.canMerge():
+                    app.collection.mergeAll()
+                    app.mode = "editorMan" 
                 elif button.buttonType == "circle" and button.name == "deleteshape":
                     print(len(app.collection.shapes))
                     app.collection.removeShape(app.selectedDotIndex[0])
@@ -187,6 +190,15 @@ def eventHandler(app):
             name="deleteshape"
         )
         app.buttonList.append(delete_button)
+    
+        merge_button = ButtonHandler(
+            buttonType="circle",
+            cx=app.width - 40 - app.editorWidth,
+            cy=220,
+            radius=25,
+            name="merge"
+        )
+        app.buttonList.append(merge_button)
 
         # Add shape selector buttons
         button_width = (app.editorWidth - 60) 
@@ -205,7 +217,6 @@ def eventHandler(app):
                 shapeIndex=i
             )
             app.buttonList.append(shape_button)
-
 
     elif app.mode == "editorAddShape":
         panelX = app.width - app.editorWidth
@@ -277,6 +288,13 @@ def redrawAll(app):
             else: 
                 drawCircle(app.width - 40 - app.editorWidth, 100, 25, fill='lightSkyBlue')
                 drawLabel("Add", app.width - 40 - app.editorWidth, 100, size=12, bold=True, fill="darkblue")
+            #merge button
+            if len(app.collection.shapes) == 2 and app.collection.canMerge():
+                drawCircle(app.width - 40 - app.editorWidth, 220, 25, fill='lightSkyBlue')
+                drawLabel("Merge", app.width - 40 - app.editorWidth, 220, size=12, bold=True, fill="darkblue")
+            else: 
+                drawCircle(app.width - 40 - app.editorWidth, 220, 25, fill='lightGray')
+                drawLabel("Merge", app.width - 40 - app.editorWidth, 220, size=12, bold=True, fill="Gray")
             drawCircle(app.width - 40 - app.editorWidth, 160, 25, fill='lightSkyBlue')
             drawLabel("Delete", app.width - 40 - app.editorWidth, 160, size=12, bold=True, fill="darkblue")
             drawEditorForManipulation(app)
@@ -330,7 +348,6 @@ def drawAddShapePanel(app):
     drawRect(panelX + 20, confirmY, app.editorWidth - 40, 40, fill=rgb(255, 127, 62), border="black", borderWidth=2)
     drawLabel("Create!", panelX + app.editorWidth / 2, confirmY + 20, size=14, bold=True, fill="white")
 
-
 def drawEditorForManipulation(app):
     drawRect(app.width - app.editorWidth, 0, app.editorWidth, app.height, fill="powderBlue", opacity=80)
     drawLabel("Editor", app.width - app.editorWidth + 120, 40, size=35)
@@ -371,8 +388,6 @@ def drawEditorForManipulation(app):
         drawLabel("-", app.width - app.editorWidth + 100, y, size=14, bold=True, fill="red")
         drawCircle(app.width - app.editorWidth + 200, y, 15, fill="lightgreen")
         drawLabel("+", app.width - app.editorWidth + 200, y, size=14, bold=True, fill="green")
-
-
 
 ############################################## 
 ############################################## MISC
