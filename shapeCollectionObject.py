@@ -24,23 +24,24 @@ class shapeCollectionObject:
         if len(self.shapes) <= 1:
             return False
         shared = self.getSharedFaces()
-        return shared != []
+        print("can merge ", len(shared) > 0)
+        return len(shared) > 0
 
     def mergeAll(self):
         if not self.canMerge():
             print("ERROR: can't merge")
             return 
         self.mergeShape()
-        #self.shapes.pop()
+        self.shapes.pop()
+        for shape in self.shapes:
+            print(shape)
 
     def getSharedFaces(self):
-        print("+++++++++++++++++", self.shapes)
         shared = set()
         for face1 in self.shapes[0].faces:
             for face2 in self.shapes[1].faces:
-                print(" -------", face1.getUsedPoints(), "\n++++++++", face2.getUsedPoints())
-                print()
                 if face1 != None and face1 == face2:
+                    print(len(face1.order), " ---- ",len(face2.order))
                     print(face1 , " and ", face2, " are the same")
                     shared.add(face1)
         return shared
@@ -56,7 +57,7 @@ class shapeCollectionObject:
         shared = self.getSharedFaces()
         if len(shared) == 0:
             return 
-        print(shared)
+        print("shared faces", shared)
         print("original length of shape 0:", len(self.shapes[0].faces))
         print("original length of shape 1:", len(self.shapes[1].faces))
         for face in shared:
@@ -64,30 +65,21 @@ class shapeCollectionObject:
             self.shapes[1].faces.remove(face)
         # we want all the deduplicated points
         allPoints = self.getAllPoints()
+        self.shapes[0].points=allPoints
+        print(len(allPoints), allPoints)
+        pointListLength= len(self.shapes[0].faces)
         for i in range(len(self.shapes[1].faces)):
             oldFace = self.shapes[1].faces[i]
-            newfaceIndex = len(self.shapes[0].faces) + i
+            newfaceIndex = pointListLength + i
             newOrder = []
             actualPoints = []
             for order in oldFace.order:
                 actualPoints.append(self.shapes[1].points[order])
             for point in actualPoints:
-                newOrder.append(actualPoints.index(point))
-            newFace = face( newfaceIndex, allPoints,newOrder) 
-        # for p in pointsToRemove:
-        #     self.shapes[1].points.remove(p)
-        #     print(len(self.shapes[0].faces), " , ", len(self.shapes[1].faces), "removing this face:", face)
-        #     print()
-        # self.shapes[0].points.extend(self.shapes[1].points)
-        # for face in self.shapes[1].faces:
-        #     tempOrder = []
-        #     for order in face.order:
-        #         tempOrder.append(order+len(self.shapes[0].points))
-        #     face.points = self.shapes[0].points
-        #     face.order = tempOrder
-        #     self.shapes[0].faces.append(face)
-        # print("shape 0:",  self.shapes[0])
-    
+                newOrder.append(allPoints.index(point))
+            newFace = FaceObject(newfaceIndex, allPoints,newOrder)
+            self.shapes[0].faces.append(newFace)
+
     def removeShape(self, index):
         if len(self.shapes) == 0 or index > len(self.shapes):
             return

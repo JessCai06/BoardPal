@@ -44,14 +44,11 @@ class FaceObject:
     def __eq__(self, other):
         if other is None or len(self.order) != len(other.order):
             return False
-
-        # Compare using sets for geometric equality
-        print(self.getUsedPoints(), other.getUsedPoints())
         return set(self.getUsedPoints()) == set(other.getUsedPoints())
 
 
     def __repr__(self):
-        edges_str = ', '.join([f"({edge[0]}, {edge[1]})" for edge in self.getEdges()])
+        edges_str = ', '.join([f"({self.points[edge[0]]}  - {self.points[edge[1]]})" for edge in self.getEdges()])
         return f"FaceObject >>>> index={self.index}, order={self.order}, edges=[{edges_str}])"
     
     def __hash__(self) -> int:

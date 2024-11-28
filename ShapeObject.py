@@ -184,3 +184,12 @@ class ShapeObject:
 
         return {"points": points, "order": order}
     
+    def __repr__(self):
+        points_str = ', '.join([f"({x}, {y}, {z})" for x, y, z in self.points])
+        faces_str = ', '.join([f"{face}" for face in self.faces])
+        return (
+            f"ShapeObject:\n"
+            f"  Center: ({self.x}, {self.y}, {self.z})\n"
+            f"  Points: [{points_str}]\n"
+            f"  Faces: [{faces_str}]"
+        )

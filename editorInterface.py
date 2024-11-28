@@ -150,6 +150,8 @@ def eventHandler(app):
     app.buttonList = []  
     if len(app.collection.shapes) == 0:
         app.mode = "editorAddShape"
+    if len(app.collection.shapes) == 1:
+        app.collection.shapes[0].moveCenter((0,0,0))
 
     if app.mode == "viewport":
         app.keyDisabled = False
@@ -290,6 +292,8 @@ def redrawAll(app):
                 drawLabel("Add", app.width - 40 - app.editorWidth, 100, size=12, bold=True, fill="darkblue")
             #merge button
             if len(app.collection.shapes) == 2 and app.collection.canMerge():
+                print("why is this not printing")
+                print("this is the shared list", app.collection.getSharedFaces())
                 drawCircle(app.width - 40 - app.editorWidth, 220, 25, fill='lightSkyBlue')
                 drawLabel("Merge", app.width - 40 - app.editorWidth, 220, size=12, bold=True, fill="darkblue")
             else: 
