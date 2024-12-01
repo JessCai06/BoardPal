@@ -1,56 +1,37 @@
 from cmu_graphics import *
-from ShapeObject import ShapeObject  # Assuming your ShapeObject and FaceObject are in shape_object.py
-
-def map_3d_to_2d(points_3d, hinge_edge, scale=100, offset=(200, 200)):
-    hinge_start, hinge_end = hinge_edge
-    hinge_vector = [hinge_end[i] - hinge_start[i] for i in range(3)]
-    hinge_length = (sum(v**2 for v in hinge_vector))**0.5
-
-    def project_point(point):
-        point_vector = [point[i] - hinge_start[i] for i in range(3)]
-        parallel_factor = sum(point_vector[i] * hinge_vector[i] for i in range(3)) / hinge_length**2
-        parallel_proj = [parallel_factor * hinge_vector[i] for i in range(3)]
-        perpendicular_vector = [point_vector[i] - parallel_proj[i] for i in range(3)]
-        perpendicular_length = (sum(v**2 for v in perpendicular_vector))**0.5
-        x_2d = parallel_factor * hinge_length
-        y_2d = perpendicular_length if perpendicular_vector[2] >= 0 else -perpendicular_length
-        return (x_2d * scale + offset[0], y_2d * scale + offset[1])
-
-    return [project_point(point) for point in points_3d]
-
-def tupToList(t):
-    return [coord for point in t for coord in point]
+from ShapeObject import ShapeObject
 
 def onAppStart(app):
-    cube = ShapeObject((0, 0, 0), category=1, option=1)  # A cube
+    """
+    Initializes the app with a ShapeObject, flattens it, and maps the points to 2D.
+    """
+    # Create a cube-shaped object
+    cube = ShapeObject((0, 0, 0), category=0, option=3)  # A cube (Square Prism)
     app.center_face = cube.flattenTo2D()  # Retrieve the center face after flattening
-    app.faces_to_draw = []  # List of all faces to draw
-    app.visited = set()
 
-    # Recursive function to flatten and collect faces
-    def flatten_face(face, offset):
-        if face in app.visited:
-            return
-        app.visited.add(face)
-
-        # Select hinge edge and map the face
-        hinge_edge = [face.getUsedPoints()[0], face.getUsedPoints()[1]]
-        face_2d = map_3d_to_2d(face.getUsedPoints(), hinge_edge, scale=100, offset=offset)
-        app.faces_to_draw.append(face_2d)
-
-        # Recursively flatten adjacent faces
-        for adj_face in face.adjacencies:
-            if adj_face is not None and adj_face not in app.visited:
-                flatten_face(adj_face, offset)
-
-    # Start flattening from the center face
-    flatten_face(app.center_face, offset=(200, 200))
+    # Use the first point of the center face as the hinge
+    hinge_start = app.center_face.getUsedPoints()[0]
+    app.points_2d = cube.map_3d_to_2d(app.center_face.getUsedPoints(), hinge_start)
 
 def redrawAll(app):
-    for face_2d in app.faces_to_draw:
-        drawPolygon(*tupToList(face_2d), fill='cyan', border='black')
+    """
+    Draws the mapped 2D points on the canvas and connects them with lines.
+    """
+    # Draw title and instructions
+    drawLabel('Mapped 2D Points from 3D Center Face', 200, 20, size=16)
+
+    # Draw each point as a circle
+    for x, y in app.points_2d:
+        drawCircle(x + 200, y + 200, 5, fill='red')  # Offset by 200, 200 to center on canvas
+
+    # Connect the points to form a polygon
+    if len(app.points_2d) > 1:
+        for i in range(len(app.points_2d)):
+            x1, y1 = app.points_2d[i]
+            x2, y2 = app.points_2d[(i + 1) % len(app.points_2d)]  # Wrap around to first point
+            drawLine(x1 + 200, y1 + 200, x2 + 200, y2 + 200, fill='black', lineWidth=2)
 
 def main():
-    runApp()
+    runApp(width=400, height=400)
 
 main()

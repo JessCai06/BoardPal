@@ -271,6 +271,8 @@ def eventHandler(app):
 
 def redrawAll(app):
     print(app.mode)
+    for s in app.collection.shapes:
+        print(s)
     if len(app.collection.shapes) == 0:
         drawViewport(app)
         drawRect(0, 0, app.width, app.height, fill="black", opacity=50)

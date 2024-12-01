@@ -67,10 +67,10 @@ class shapeCollectionObject:
         allPoints = self.getAllPoints()
         self.shapes[0].points=allPoints
         print(len(allPoints), allPoints)
-        pointListLength= len(self.shapes[0].faces)
+        maxindex = self.findMaxIndex(self.shapes[0].faces)
         for i in range(len(self.shapes[1].faces)):
             oldFace = self.shapes[1].faces[i]
-            newfaceIndex = pointListLength + i
+            newfaceIndex = maxindex + i+1
             newOrder = []
             actualPoints = []
             for order in oldFace.order:
@@ -79,6 +79,13 @@ class shapeCollectionObject:
                 newOrder.append(allPoints.index(point))
             newFace = FaceObject(newfaceIndex, allPoints,newOrder)
             self.shapes[0].faces.append(newFace)
+        
+    def findMaxIndex (self, lis):
+        maxx = -1
+        for f in lis:
+            if f.index > maxx:
+                maxx = f.index
+        return maxx
 
     def removeShape(self, index):
         if len(self.shapes) == 0 or index > len(self.shapes):

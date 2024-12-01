@@ -14,6 +14,10 @@ class ShapeObject:
         ]
         self.moveCenter(pos)
 
+        ##################
+        self.center2D = None
+        self.faces2D = copy.deepcopy(self.faces)
+
     def __repr__(self):
         return f"center at {self.x, self.y, self.z} --- and points at {self.points}"
 
@@ -68,6 +72,8 @@ class ShapeObject:
         )
 
     def rearrangeFaces(self):
+        """
+        this is what happens when you move a point and some of the"""
         new_faces = []
         for face in self.faces:
             face_points = [self.points[i] for i in face.order]
@@ -75,41 +81,63 @@ class ShapeObject:
                 new_faces.append(face)
             else:
                 for i in range(2, len(face.order)):
-                    new_faces.append(FaceObject(
-                        face.index, self.points, [face.order[0], face.order[i - 1], face.order[i]]
-                    ))
+                    new_faces.append(FaceObject(len(self.faces), self.points, [face.order[0], face.order[i - 1], face.order[i]]))
         self.faces = new_faces        
 
 #um so, if its a full 3d shape, then every single edge of any face should be adjacent to some other face
 #
     def flattenTo2D(self):
         stack = copy.deepcopy(self.faces)
+        self.faces2D = []
         center = stack.pop()
+        #A,B is the reference edge you are using
+        a,b = (center.getEdges()[0])
+
+        #A is origin (0,0) B is (distance AB, 0)
+        A, B = self.points[a], self.points[b]
+        for i, order in enumerate(center.order):
+            C = self.points[order]
+            center.used2D[i] = (self.constructFlattenedC(A,B,C))
+        print(center.used2D)
         self.bloom(center, stack)
-        return center
-    
+        self.center2D = center
+        self.faces2D.append(center)
+
     def bloom(self, center, stack):
         # depending on the number of edges you have, you would have pointers to the "next node" of the 
-        print(center)
         if len(stack) == 0:
             return
+        if center == None:
+            return
         print()
-        print(" stack: ", len (stack), stack)
         print(" center: ", center)
-        adjacencies = [None] * len(center.getEdgePairs())
+        edgePairs = center.getEdges()
+        adjacencies = [None] * len(edgePairs)
 
         # Process each face in the stack
         i = 0
         while i < len(stack):
             face = stack[i]
+            print(face)
             # this shared thing is a dictionary that gives the shared index of the edge 
             # key = index of edge in center, value = index of edge in the other face
-            shared_edges = center.getSharedEdges(face)
-
-            if shared_edges:
+            center.getSharedEdges(face)
+            shared_edge = center.getSharedEdges(face)
+            print("SHARED EDGES", shared_edge)
+            if len (shared_edge) > 0:
                 # we want to build a parallel list that corresponds another face object with this particular edge of the face.
-                for center_edge_idx, face_edge_idx in shared_edges:
-                    adjacencies[center_edge_idx] = face  
+                for centerEidx, pair1 in shared_edge:
+                    print(centerEidx, pair1)
+                    adjacencies[centerEidx] = face 
+                    a = center.used2D[center.order.index(pair1[0])] 
+                    b = center.used2D[center.order.index(pair1[1])] 
+                    # we need to look through the list. the shared edge is the hinge - WE CAN ASSUME THAT THE 
+                    #NEEDED PAIRS ALREADY EXIST IN THE DICTIONARY BECAUSE IT'S SHARED WITH THE CENTER, AND ALL
+                    #POINTS IN THE CENTER IS DEFINED ALREADY
+                    for j, order in enumerate(face.order):
+                        c = face.points[order]
+                        bigC = self.constructFlattenedHinge(face.points[pair1[0]], face.points[pair1[1]],c,a,b)
+                        face.used2D[j] = bigC
 
                 stack.pop(i)  
             else:
@@ -117,9 +145,7 @@ class ShapeObject:
         center.adjacencies = adjacencies
         for face in adjacencies:
             self.bloom(face, stack)  
-
-
-
+            self.faces2D.append(face)
 
     def generateShapeData(self, category, option):
 
@@ -219,57 +245,113 @@ class ShapeObject:
     
     def __repr__(self):
         points_str = ', '.join([f"({x}, {y}, {z})" for x, y, z in self.points])
-        faces_str = ', '.join([f"{face}" for face in self.faces])
+        faces_str = ', '.join([f"{face.index}" for face in self.faces])
         return (
             f"ShapeObject:\n"
-            f"  Center: ({self.x}, {self.y}, {self.z})\n"
-            f"  Points: [{points_str}]\n"
             f"  Faces: [{faces_str}]"
         )
+
+    def calculate_3d_distance(self, point1, point2):
+        x1, y1, z1 = point1
+        x2, y2, z2 = point2
+
+        dx = x2 - x1
+        dy = y2 - y1
+        dz = z2 - z1
+
+        return math.sqrt(dx**2 + dy**2 + dz**2)
+
+    def calculate_angle_CAB(self,A, B, C):
+        # Vectors AB and AC
+        vector_AB = [B[i] - A[i] for i in range(3)]
+        vector_AC = [C[i] - A[i] for i in range(3)]
+
+        # Dot product of AB and AC
+        dot_product = sum(vector_AB[i] * vector_AC[i] for i in range(3))
+
+        # Magnitudes of AB and AC
+        magnitude_AB = math.sqrt(sum(v**2 for v in vector_AB))
+        magnitude_AC = math.sqrt(sum(v**2 for v in vector_AC))
+
+        # Avoid division by zero
+        if magnitude_AB == 0 or magnitude_AC == 0:
+            raise ValueError("One or both vectors have zero magnitude, cannot compute angle.")
+
+        # Cosine of the angle CAB
+        cos_angle = dot_product / (magnitude_AB * magnitude_AC)
+        cos_angle = max(-1.0, min(1.0, cos_angle))  # Clamp to avoid domain errors in acos
+
+        # Calculate the angle in radians
+        angle_CAB = math.acos(cos_angle)
+
+        return angle_CAB
+
+    def constructFlattenedHinge(self,A,B,C, a, b):
+        """
+        precondition: ABC are all 3D coordinates, hinge (2d coordinates) is a,b which is the hinge you want to base C off of
+        """
+        if C == A:
+            return a
+        if C == B:
+            return b
+        #1) calculate distance from A to C
+        distance = self.calculate_3d_distance(A,C)
+        #2) theta CAB
+        theta = self.calculate_angle_CAB(A,B,C)
+        #3) construct the new 2D point from A with distance
+        x = round(distance * math.cos(theta)+a[0])
+        y = round(distance * math.sin(theta)+a[1])
+        print(x,y)
+        return (x,y)
+
+    def constructFlattenedC(self,A,B,C):
+        """
+        precondition: ABC are all 3D coordinates
+        """
+        if C == A:
+            return (0,0)
+        if C==B:
+            return (round(self.calculate_3d_distance(A,B)),0)
+        #1) calculate distance from A to C
+        distance = self.calculate_3d_distance(A,C)
+        #2) theta CAB
+        
+        theta = self.calculate_angle_CAB(A,B,C)
+        #3) construct the new 2D point from A with distance
+        x = round(distance * math.cos(theta))
+        y = round(distance * math.sin(theta))
+        return (x,y)
 
 
 def test_flatten_to_2d():
     """
-    Tests the flattenTo2D method by printing the center face and its adjacencies.
+    Tests the flattenTo2D method by printing the center face and its adjacencies,
+    as well as verifying the 2D mapped points of the center face.
     """
     # Create a cube-shaped object
-    cube = ShapeObject((0, 0, 0), category=1, option=1)  # A cube
+    cube = ShapeObject((0, 0, 0), category=0, option=1)  # A cube (Square Prism)
 
     print("\nInitial Cube Faces:")
     for face in cube.faces:
         print(face)
 
-    print("\nFlattening the cube to 2D...")
+    print("\nFlattening the cube to 2D")
     center_face = cube.flattenTo2D()
 
     print("\nCenter Face After Flattening:")
-    print(center_face)
+    print(cube.center2D, cube.center2D.adjacencies)
 
     print("\nAdjacency Relationships (Spiraling Out):")
-    visited = set()
-
-    def print_adjacencies(face, depth=0):
-        if face in visited:
-            return
-        visited.add(face)
-
-        # Indentation for hierarchical visualization
-        indent = "  " * depth
-        print(f"{indent}Face {face.index}:")
-
-        for i, adjacent_face in enumerate(face.adjacencies):
-            if adjacent_face is None:
-                print(f"{indent}  Edge {i}: No adjacency")
-            else:
-                print(f"{indent}  Edge {i}: Adjacent to Face {adjacent_face.index}")
-
-        # Recurse into adjacent faces
-        for adjacent_face in face.adjacencies:
-            if adjacent_face is not None and adjacent_face not in visited:
-                print_adjacencies(adjacent_face, depth + 1)
-
-    # Start printing adjacencies from the center face
-    print_adjacencies(center_face)
-
+    for face in cube.faces2D:
+        if face:
+            print(f"Face {face.index}:")
+            print(face.adjacencies)
+            for i, adjacent_face in enumerate(face.adjacencies):
+                if adjacent_face is None:
+                    print(f" Edge {i}: No adjacency")
+                else:
+                    print(f" Edge {i}: Adjacent to Face {adjacent_face.index}")
 # Run the test
-test_flatten_to_2d()
+if __name__ == "__main__":
+    test_flatten_to_2d()
+
