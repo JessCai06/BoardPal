@@ -67,19 +67,3 @@ class Shape2DObject:
 
         self.points = [rotate_point(x, y) for x, y in self.points]
         self.faces = [[rotate_point(x, y) for x, y in face] for face in self.faces]
-
-    def scale(self, factor):
-        """
-        Scale the shape by a given factor.
-
-        :param factor: Scaling factor.
-        """
-        self.points = [(x * factor, y * factor) for x, y in self.points]
-        self.faces = [[(x * factor, y * factor) for x, y in face] for face in self.faces]
-
-    def __str__(self):
-        """
-        String representation of the 2D shape.
-        """
-        face_strs = ["Face: " + " -> ".join(f"({x}, {y})" for x, y in face) for face in self.faces]
-        return "\n".join(face_strs)

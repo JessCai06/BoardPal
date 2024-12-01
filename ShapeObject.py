@@ -80,13 +80,46 @@ class ShapeObject:
                     ))
         self.faces = new_faces        
 
+#um so, if its a full 3d shape, then every single edge of any face should be adjacent to some other face
+#
     def flattenTo2D(self):
-        visited_faces = set()
-        flattened_faces = []
-        stack = [(self.faces[0], (0, 0))]
+        stack = copy.deepcopy(self.faces)
+        center = stack.pop()
+        self.bloom(center, stack)
+        return center
     
-    def bloom(self, hi):
-        pass
+    def bloom(self, center, stack):
+        # depending on the number of edges you have, you would have pointers to the "next node" of the 
+        print(center)
+        if len(stack) == 0:
+            return
+        print()
+        print(" stack: ", len (stack), stack)
+        print(" center: ", center)
+        adjacencies = [None] * len(center.getEdgePairs())
+
+        # Process each face in the stack
+        i = 0
+        while i < len(stack):
+            face = stack[i]
+            # this shared thing is a dictionary that gives the shared index of the edge 
+            # key = index of edge in center, value = index of edge in the other face
+            shared_edges = center.getSharedEdges(face)
+
+            if shared_edges:
+                # we want to build a parallel list that corresponds another face object with this particular edge of the face.
+                for center_edge_idx, face_edge_idx in shared_edges:
+                    adjacencies[center_edge_idx] = face  
+
+                stack.pop(i)  
+            else:
+                i += 1  
+        center.adjacencies = adjacencies
+        for face in adjacencies:
+            self.bloom(face, stack)  
+
+
+
 
     def generateShapeData(self, category, option):
 
@@ -193,3 +226,50 @@ class ShapeObject:
             f"  Points: [{points_str}]\n"
             f"  Faces: [{faces_str}]"
         )
+
+
+def test_flatten_to_2d():
+    """
+    Tests the flattenTo2D method by printing the center face and its adjacencies.
+    """
+    # Create a cube-shaped object
+    cube = ShapeObject((0, 0, 0), category=1, option=1)  # A cube
+
+    print("\nInitial Cube Faces:")
+    for face in cube.faces:
+        print(face)
+
+    print("\nFlattening the cube to 2D...")
+    center_face = cube.flattenTo2D()
+
+    print("\nCenter Face After Flattening:")
+    print(center_face)
+
+    print("\nAdjacency Relationships (Spiraling Out):")
+    visited = set()
+
+    def print_adjacencies(face, depth=0):
+        if face in visited:
+            return
+        visited.add(face)
+
+        # Indentation for hierarchical visualization
+        indent = "  " * depth
+        print(f"{indent}Face {face.index}:")
+
+        for i, adjacent_face in enumerate(face.adjacencies):
+            if adjacent_face is None:
+                print(f"{indent}  Edge {i}: No adjacency")
+            else:
+                print(f"{indent}  Edge {i}: Adjacent to Face {adjacent_face.index}")
+
+        # Recurse into adjacent faces
+        for adjacent_face in face.adjacencies:
+            if adjacent_face is not None and adjacent_face not in visited:
+                print_adjacencies(adjacent_face, depth + 1)
+
+    # Start printing adjacencies from the center face
+    print_adjacencies(center_face)
+
+# Run the test
+test_flatten_to_2d()

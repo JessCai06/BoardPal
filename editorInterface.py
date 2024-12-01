@@ -16,7 +16,7 @@ def onAppStart(app):
 def initiateWelcome(app):
     app.collection = shapeCollectionObject()
     app.keyDisabled = False
-    app.collection.addShape(ShapeObject((0,0,0),1,0))
+    #app.collection.addShape(ShapeObject((0,0,0),1,0))
 
 def initiateEditor(app):
     app.selectedDotIndex = (0,0)
@@ -98,6 +98,7 @@ def onMousePress(app, mouseX, mouseY):
                 elif button.buttonType == "circle" and button.name == "deleteshape":
                     print(len(app.collection.shapes))
                     app.collection.removeShape(app.selectedDotIndex[0])
+                    app.selectedDotIndex = (0,0)
                 elif button.buttonType == "circle" and button.name == "exit":
                     app.mode = "viewport"  
                 elif button.buttonType == "rectangle" and button.name == "shapeSelector":
