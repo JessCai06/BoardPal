@@ -95,6 +95,7 @@ def onMousePress(app, mouseX, mouseY):
                     app.mode = "editorAddShape" 
                 elif button.buttonType == "circle" and button.name == "merge" and len(app.collection.shapes) == 2 and app.collection.canMerge():
                     app.collection.mergeAll()
+                    app.selectedDotIndex = (0,0)
                     app.mode = "editorMan" 
                 elif button.buttonType == "circle" and button.name == "deleteshape":
                     print(len(app.collection.shapes))
@@ -476,6 +477,8 @@ def drawEditorForManipulation(app):
         drawCircle(app.width - app.editorWidth + 100, y, 15, fill="lightsalmon")
         drawLabel("-", app.width - app.editorWidth + 100, y, size=14, bold=True, fill="red")
         drawCircle(app.width - app.editorWidth + 200, y, 15, fill="lightgreen")
+        drawCircle (10,10,100)
+        drawLabel(selectedPoint[i], app.width - app.editorWidth + 10, y, size=14, bold=True, fill="red")
         drawLabel("+", app.width - app.editorWidth + 200, y, size=14, bold=True, fill="green")
 
 ############################################## 
