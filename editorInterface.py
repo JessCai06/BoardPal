@@ -30,52 +30,18 @@ def initiateEditor(app):
     updateViewport(app)
 
 def inputEditorButton(app, mouseX, mouseY):
-    button_height = 50
-    button_margin = 60
-    button_x_start = app.width - app.editorWidth + 80
-    button_x_end = button_x_start + app.editorWidth - 110
-    minus_x_center = app.width - app.editorWidth + 100
-    plus_x_center = app.width - app.editorWidth + 200
-    button_y_start_base = 200
+    minusX = 850
+    minusY = 270
 
-    # Check X, Y, Z buttons
-    for button in range(3):  # X, Y, Z buttons
-        button_y_start = button_y_start_base + button * button_margin
-        button_y_end = button_y_start + button_height
+    for i in range (3):  
+        currentminusY = minusY + 50 * i
+        if distance(mouseX, mouseY, minusX, currentminusY) < 15:
+            return (i, -1)  
+        elif distance(mouseX, mouseY, minusX+100, currentminusY) < 15:
+            return (i, +1)  
 
-        # Check for minus button (-)
-        if (mouseX - minus_x_center) ** 2 + (mouseY - (button_y_start + button_height // 2)) ** 2 <= 15 ** 2:
-            return (button, -1)  # Minus button clicked
+    return (-1, 0)  # No button clicked
 
-        # Check for plus button (+)
-        elif (mouseX - plus_x_center) ** 2 + (mouseY - (button_y_start + button_height // 2)) ** 2 <= 15 ** 2:
-            return (button, +1)  # Plus button clicked
-
-    return (-1, 0)  
-
-def inputEditorButton(app, mouseX, mouseY):
-    button_height = 50
-    button_margin = 60
-    button_x_start = app.width - app.editorWidth + 80
-    button_x_end = button_x_start + app.editorWidth - 110
-    minus_x_center = app.width - app.editorWidth + 100
-    plus_x_center = app.width - app.editorWidth + 200
-    button_y_start_base = 200
-
-    # Check X, Y, Z buttons
-    for button in range(3):  # X, Y, Z buttons
-        button_y_start = button_y_start_base + button * button_margin
-        button_y_end = button_y_start + button_height
-
-        # Check for minus button (-)
-        if (mouseX - minus_x_center) ** 2 + (mouseY - (button_y_start + button_height // 2)) ** 2 <= 15 ** 2:
-            return (button, -1)  # Minus button clicked
-
-        # Check for plus button (+)
-        elif (mouseX - plus_x_center) ** 2 + (mouseY - (button_y_start + button_height // 2)) ** 2 <= 15 ** 2:
-            return (button, +1)  # Plus button clicked
-
-    return (-1, 0)  
 
 def onMousePress(app, mouseX, mouseY):
     eventHandler(app)  # Update the button list based on the current mode
@@ -121,6 +87,7 @@ def onMousePress(app, mouseX, mouseY):
 
         inputIdx = inputEditorButton(app, mouseX, mouseY)
         if inputIdx[0] != -1:
+            print("\t"*5,inputIdx)
             shapeIndex, dotIndex = app.selectedDotIndex
             shape = app.collection.shapes[shapeIndex]
             x, y, z = shape.points[dotIndex]
@@ -452,33 +419,35 @@ def drawEditorForManipulation(app):
     button_width = (app.editorWidth - 100) // len(app.collection.shapes)
     button_height = 50
 
+    highlightColor = "white"
+    thickness = 2
     for i, shape in enumerate(app.collection.shapes):
         x = x_start + i * (button_width + 40)
-
+        if shapeIndex != i: highlightColor = None
+        else: highlightColor = "white"
+        drawCircle(x + 10, y_start + button_height / 2, button_height / 2, fill="skyblue",border = highlightColor, borderWidth = thickness)
+        drawCircle(x + button_width - 10, y_start + button_height / 2, button_height / 2, fill="skyblue",border = highlightColor, borderWidth = thickness)
         drawRect(x + 10, y_start, button_width - 20, button_height, fill="skyblue")
-        drawCircle(x + 10, y_start + button_height / 2, button_height / 2, fill="skyblue")
-        drawCircle(x + button_width - 10, y_start + button_height / 2, button_height / 2, fill="skyblue")
 
         if shapeIndex == i:
-            drawRect(x + 10, y_start, button_width - 20, button_height, fill=None, border="red", borderWidth=2)
-            drawCircle(x + 10, y_start + button_height / 2, button_height / 2, fill=None, border="red", borderWidth=2)
-            drawCircle(x + button_width - 10, y_start + button_height / 2, button_height / 2, fill=None, border="red", borderWidth=2)
+            drawLine(x + 10, y_start+button_height, x + 10+button_width - 20,  y_start+button_height, fill=highlightColor, lineWidth=thickness)
+            drawLine(x + 10, y_start, x + 10+button_width - 20,  y_start, fill=highlightColor,lineWidth=thickness)
 
         drawLabel(f"Shape {i + 1}", x + button_width / 2, y_start + button_height / 2, size=14, bold=True)
 
     y_point = y_start + 100
-    drawLabel(f"Currently selected point: {selectedPoint}", app.width - app.editorWidth + 20, y_point, size=14, align="left")
-    drawLabel(f"Faces: {selectFaces}", app.width - app.editorWidth + 20, y_point + 20, size=12, align="left")
+    drawLabel(f"This selected point is in Faces", app.width - app.editorWidth + 20, y_point+15, size=14, align="left")
+    faceListstr = ", ".join(map(str, selectFaces))
+    drawLabel(f"{faceListstr}", app.width - app.editorWidth + 20, y_point + 20+20, size=16, align="left")
 
     coordList = ["X", "Y", "Z"]
     for i, coord in enumerate(coordList):
-        y = y_point + 60 + i * 50
+        y = y_point+30 + 60 + i * 50
         drawLabel(coord, app.width - app.editorWidth + 40, y, size=16, bold=True)
         drawCircle(app.width - app.editorWidth + 100, y, 15, fill="lightsalmon")
         drawLabel("-", app.width - app.editorWidth + 100, y, size=14, bold=True, fill="red")
         drawCircle(app.width - app.editorWidth + 200, y, 15, fill="lightgreen")
-        drawCircle (10,10,100)
-        drawLabel(selectedPoint[i], app.width - app.editorWidth + 10, y, size=14, bold=True, fill="red")
+        drawLabel(int(selectedPoint[i]), app.width - app.editorWidth + 150, y, size=20, bold=True, fill="black")
         drawLabel("+", app.width - app.editorWidth + 200, y, size=14, bold=True, fill="green")
 
 ############################################## 
