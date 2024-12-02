@@ -26,7 +26,8 @@ class FaceObject:
         self.order = order
         r, g, b= random.randint(0,255), random.randint(0,255),random.randint(0,255)
         self.color = (r,g,b)
-        self.adjacencies = []
+        self.edges = self.getEdges()
+        self.adjacencies = [None] * len(self.edges)
         self.used2D = [None] * len(order)
 
     def getEdges(self):
@@ -43,18 +44,6 @@ class FaceObject:
             temp.append(self.points[e])
         return temp
 
-    def getSharedEdges(self, other):
-        edgeSelf = self.getEdges()
-        edgeOther = other.getEdges()
-        shared = []
-        for indexEdgeSelf, pair1 in enumerate(edgeSelf):
-            for pair2 in edgeOther:
-                print(pair1, (pair2[1], pair2[0]))
-                if pair1 == pair2 or pair1 == (pair2[1], pair2[0]):
-                    print("    "*4, pair1, "and", pair2, "are the same")
-                    shared.append((indexEdgeSelf, pair1))
-        return shared
-
     def __eq__(self, other):
         if other is None or len(self.order) != len(other.order):
             return False
@@ -62,7 +51,7 @@ class FaceObject:
 
     def __repr__(self):
         edges_str = ', '.join([f"({self.points[edge[0]]}  - {self.points[edge[1]]})" for edge in self.getEdges()])
-        return f"FaceObject {self.index} >>>> )"
+        return f"FaceObject {self.index} >>>> {self.used2D})"
     
     def __hash__(self) -> int:
         return hash(tuple(sorted(self.getUsedPoints())))

@@ -5,6 +5,7 @@ from shapeCollectionObject import shapeCollectionObject
 from buttonHandler import ButtonHandler
 import math
 import random
+import re
 
 def onAppStart(app):
     app.mode = "viewport"
@@ -137,7 +138,20 @@ def onMousePress(app, mouseX, mouseY):
         for button in app.buttonList:
             if button.isClicked(mouseX, mouseY):
                 print(button.buttonType, button.name)
-                if button.buttonType == "rectangle" and button.name == "Create!":
+                if button.buttonType == "rectangle" and button.name == "Generate shape via AI":
+                    app.mode = "loading"
+                    userInput = app.getTextInput("Enter a description of a 3D shape (e.g., '3D octagonal prism') - the more detailed the better!")
+                    parsedThing = retrievingJson(userInput)
+                    if parsedThing != None:
+                        points, order = parsedThing
+                        print("this is the points", points)
+                        print("this is the order", order)
+                        newShape = ShapeObject((0,0,0), points, order)
+                        app.collection.addShape(newShape)
+                        app.mode = "editorMan"
+                    else:
+                        print("BAD BAD BAD")
+                elif button.buttonType == "rectangle" and button.name == "Create!":
                     app.collection.addShape(ShapeObject((0, 0, 0), *app.defaultNewShape))
                     app.mode = "editorMan" 
                 elif button.buttonType == "rectangle" and type(button.name) == tuple:
@@ -146,6 +160,57 @@ def onMousePress(app, mouseX, mouseY):
         pass
 
     updateViewport(app)  
+
+def parse_points_and_order(input_string):
+    # Find the start and end indices for the "points" and "order" sections
+    points_start = input_string.find('"points": [') + len('"points": [')
+    points_end = input_string.find(']', points_start)
+    
+    order_start = input_string.find('"order": [') + len('"order": [')
+    order_end = input_string.rfind(']')
+    
+    # Extract the substrings containing the points and order
+    points_str = input_string[points_start:points_end]
+    order_str = input_string[order_start:order_end]
+    
+    # Parse points: Split by "), (" and remove the surrounding parentheses and extra spaces
+    points = []
+    points_list = points_str.split('), (')
+    for point in points_list:
+        # Remove any surrounding spaces and parentheses, then convert to a tuple of floats
+        point = point.strip(' ()')
+        point_tuple = tuple(map(float, point.split(',')))
+        points.append(point_tuple)
+    
+    # Parse order: Split by '], [' and convert to lists of integers
+    order = []
+    order_list = order_str.split('], [')
+    for group in order_list:
+        # Remove any surrounding spaces and brackets, then split by commas and convert to integers
+        group = group.strip(' []')
+        group_list = list(map(int, group.split(',')))
+        order.append(group_list)
+        print(group_list)
+    
+    return points, order
+
+def retrievingJson(user_input):
+
+    print("Welcome to the 3D Shape Generator!")
+    result = generate_3d_shape(user_input)
+    print(result)
+    try:
+        if "points" in result and "order" in result:
+            points, order = parse_points_and_order(result)
+            print(points, order)
+            return points, order
+        else:
+            print("\nThe response contains guidelines or an unexpected format:")
+            print(result)
+    except json.JSONDecodeError:
+        # Print guidelines or plain text if the result is not JSON
+        print("\nThe response from OpenAI:")
+        print(result)
 
 def eventHandler(app):
     app.buttonList = []  
@@ -226,7 +291,7 @@ def eventHandler(app):
 
         # Standard Shapes Buttons
         categoryY = 170
-        standardShapes = ["Pyramid", "Cube", "Hexagon", "Pentagon"]
+        standardShapes = ["Pyramid", "Cube"]
         buttonHeight = 30
         shapeY = categoryY + 30
         for i, shape in enumerate(standardShapes):
@@ -256,14 +321,25 @@ def eventHandler(app):
                 name=(1,i)
             )
             app.buttonList.append(button)
-
-        # Confirm Button
+        
+                # Confirm Button
         confirmY = prismY + len(prismShapes) * (buttonHeight + 5) + 20
         confirmButton = ButtonHandler(
             buttonType="rectangle",
             x=panelX + 20,
             y=confirmY,
-            width=app.editorWidth - 40,
+            width=app.editorWidth,
+            height=40,
+            name="Generate shape via AI"
+        )
+        app.buttonList.append(confirmButton)
+
+        # Confirm Button
+        confirmButton = ButtonHandler(
+            buttonType="rectangle",
+            x=panelX + 20,
+            y=app.height-200,
+            width=app.editorWidth +100,
             height=40,
             name="Create!"
         )
@@ -278,7 +354,10 @@ def redrawAll(app):
         drawRect(0, 0, app.width, app.height, fill="black", opacity=50)
         drawAddShapePanel(app)
     else:   
-        if app.mode == "viewport":
+        if app.mode == "loading":
+            drawRect(0, 0, app.width, app.height, fill="black", opacity=50)
+            drawLabel("Loading API response....", app.width/2, app.height/2, size = 30, fill = "white")
+        elif app.mode == "viewport":
             drawViewport(app)
             drawCircle(app.width - 40, 40, 25, fill='lightSkyBlue')
             drawLabel("Editor", app.width - 40, 40, size=12, bold=True, fill="darkblue")
@@ -325,7 +404,7 @@ def drawAddShapePanel(app):
     categoryY = centerY + 50
     drawLabel("Standard Shapes", panelX + 20, categoryY, size=16, bold=True, align="left")
 
-    standardShapes = ["Pyramid", "Cube", "Hexagon", "Pentagon"]
+    standardShapes = ["Pyramid", "Cube"]
     buttonHeight = 30
     shapeY = categoryY + 30
     for i, shape in enumerate(standardShapes):
@@ -350,10 +429,13 @@ def drawAddShapePanel(app):
         drawRect(panelX + 20, prismY + i * (buttonHeight + 5), textWidth, buttonHeight, fill=fill)
         drawLabel(shape, panelX + 20 + textWidth / 2, prismY + i * (buttonHeight + 5) + buttonHeight / 2, size=12, bold=True)
 
-    # Confirm Button
     confirmY = prismY + len(prismShapes) * (buttonHeight + 5) + 20
     drawRect(panelX + 20, confirmY, app.editorWidth - 40, 40, fill=rgb(255, 127, 62), border="black", borderWidth=2)
-    drawLabel("Create!", panelX + app.editorWidth / 2, confirmY + 20, size=14, bold=True, fill="white")
+    drawLabel("Generate shape via AI", panelX + app.editorWidth / 2, confirmY + 20, size=14, bold=True, fill="white")
+    # Confirm Button
+    confirmY = prismY + len(prismShapes) * (buttonHeight + 5) + 20
+    drawRect(panelX + 20, app.height-200, app.editorWidth - 40, 40, fill=rgb(255, 127, 62), border="black", borderWidth=2)
+    drawLabel("Create!", panelX + app.editorWidth / 2, app.height-180, size=14, bold=True, fill="white")
 
 def drawEditorForManipulation(app):
     drawRect(app.width - app.editorWidth, 0, app.editorWidth, app.height, fill="powderBlue", opacity=80)
@@ -423,16 +505,6 @@ def transformToViewport(app, point):
 def onKeyHold(app, key):
     if not app.keyDisabled:
         thetaX, thetaY, thetaZ = app.camTheta  
-        if "0" in key:
-            app.collection.addShape(ShapeObject((0,0,0),1,0))
-        if "1" in key:
-            app.collection.addShape(ShapeObject((0,0,0),1,1))
-        if "2" in key:
-            app.collection.addShape(ShapeObject((0,0,0),1,2))
-        if "3" in key:
-            app.collection.addShape(ShapeObject((0,0,0),1,3))
-        if "4" in key:
-            app.collection.addShape(ShapeObject((0,0,0),0,3))
         if "right" in key:
             app.camTheta = (thetaX + 2, thetaY, thetaZ)
         elif "left" in key:
@@ -476,6 +548,54 @@ def drawViewport(app):
 
             for edge in face.getEdges():
                 drawLine(*viewPoints[edge[0]], *viewPoints[edge[1]])
+
+import requests
+import json
+
+# Your OpenAI API key
+API_KEY = "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"
+
+# OpenAI API endpoint for chat completions
+API_URL = "https://api.openai.com/v1/chat/completions"
+
+def generate_3d_shape(user_input):
+    """
+    Sends a request to OpenAI to generate a 3D shape based on user input.
+
+    :param user_input: A description of the desired 3D shape.
+    :return: JSON response containing points and order or guidelines for improvement.
+    """
+    # Prepare the request payload
+    payload = {
+        "model": "gpt-4",
+        "messages": [
+            {
+                "role": "user",
+                "content": (
+                    f"You are a 3D shape generator assistant. The user wants to generate a 3D shape based on the following description: {user_input}. If the description is sufficient, respond strictly with the JSON representation of the shape in the following format: {{ \"points\": [(x1, y1, z1), (x2, y2, z2), ...], \"order\": [[index1, index2, index3, ...], ...] }}. Do not include any extra text, explanations, or instructions. If the description is insufficient or invalid, respond only with 'Invalid description'."
+                )
+            }
+        ],
+        "temperature": 0.7
+    }
+
+    # Set up headers for authentication and content type
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {API_KEY}"
+    }
+
+    # Send the POST request to the OpenAI API
+    response = requests.post(API_URL, headers=headers, json=payload)
+
+    # Handle the response
+    if response.status_code == 200:
+        result = response.json()
+        content = result["choices"][0]["message"]["content"]
+        return content
+    else:
+        return f"Error: {response.status_code} - {response.text}"
+
 
 runApp(width=1000, height=800)
 

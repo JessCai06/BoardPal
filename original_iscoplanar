@@ -26,3 +26,71 @@
             result += normal[i] * v3[i]
 
         return result == 0
+
+
+#old bloom
+# def bloom(self, center, stack):
+    #     # depending on the number of edges you have, you would have pointers to the "next node" of the 
+    #     if len(stack) == 0:
+    #         return
+    #     if center == None:
+    #         return
+    #     print()
+    #     print(" center: ", center)
+    #     edgePairs = center.getEdges()
+    #     adjacencies = [None] * len(edgePairs)
+
+    #     # Process each face in the stack
+    #     i = 0
+    #     while i < len(stack):
+    #         face = stack[i]
+    #         print(face)
+    #         # this shared thing is a dictionary that gives the shared index of the edge 
+    #         # key = index of edge in center, value = index of edge in the other face
+    #         center.getSharedEdges(face)
+    #         shared_edge = center.getSharedEdges(face)
+    #         print("SHARED EDGES", shared_edge)
+    #         if len (shared_edge) > 0:
+    #             # we want to build a parallel list that corresponds another face object with this particular edge of the face.
+    #             for centerEidx, pair1 in shared_edge:
+    #                 print(centerEidx, pair1)
+    #                 adjacencies[centerEidx] = face 
+    #                 #a b is the hinge
+
+    #                 a = center.used2D[center.order.index(pair1[0])] 
+    #                 b = center.used2D[center.order.index(pair1[1])] 
+    #                 print("hinge >-----", a, b)
+    #                 # we need to look through the list. the shared edge is the hinge - WE CAN ASSUME THAT THE 
+    #                 #NEEDED PAIRS ALREADY EXIST IN THE DICTIONARY BECAUSE IT'S SHARED WITH THE CENTER, AND ALL
+    #                 #POINTS IN THE CENTER IS DEFINED ALREADY
+    #                 for j, order in enumerate(face.order):
+    #                     c = face.points[order]
+    #                     bigC = self.constructFlattenedHinge(face.points[pair1[0]], face.points[pair1[1]],c,a,b)
+    #                     face.used2D[j] = bigC
+
+    #             stack.pop(i)  
+    #         else:
+    #             i += 1  
+    #     center.adjacencies = adjacencies
+    #     for face in adjacencies:
+    #         #self.bloom(face, stack)  
+    #         self.faces2D.append(face)
+
+
+
+    curl https://api.openai.com/v1/models \
+  -H "Authorization: Bearer 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", \
+  -H "OpenAI-Organization: org-cFL4KqYg4OESnn3IaXxYSqm7" \
+  -H "OpenAI-Project: proj_PzUqrFHTE4zC4b62KMw1T5H7"
+
+
+curl https://api.openai.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer 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" \
+  -d '{
+     "model": "gpt-4",
+     "messages": [{"role": "user", "content": "You are a 3D shape generator assistant. The user wants to generate a 3D shape based on the following description: 3D octagon prism. If the description is sufficient, generate the shape in this JSON format: { \"points\": [[x1, y1, z1], [x2, y2, z2], ...], \"order\": [[index1, index2, index3, ...], ...] }. If the input is too vague or invalid, provide clear, actionable guidelines to describe a valid 3D shape."}],
+     "temperature": 0.7
+   }'
+
+

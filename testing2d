@@ -23,20 +23,8 @@ def onAppStart(app):
 
 
 def redrawAll(app):
-    print(app.flattened_faces)
-    for face_points, color in app.flattened_faces:
-        viewport_points = [convertToViewport(app, x, y) for x, y in face_points]
-        drawPolygon(
-            *[coord for point in viewport_points for coord in point],
-            fill=rgb(*color),
-            opacity=80,
-        )
-        drawPolygon(
-            *[coord for point in viewport_points for coord in point],
-            fill=None,
-            border="black",
-            borderWidth=2,
-        )
+    file_path = app.getTextInput("hi")
+    
 
 
 runApp(width=800, height=600)

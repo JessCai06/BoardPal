@@ -6,17 +6,25 @@ import copy
 class ShapeObject:
     def __init__(self, pos, category, option):
         self.x, self.y, self.z = pos
-        shape_data = copy.deepcopy(self.generateShapeData(category, option))
-        self.points = [(x + self.x, y + self.y, z + self.z) for x, y, z in shape_data["points"]]
-        self.faces = [
-            FaceObject(index, self.points, face)
-            for index, face in enumerate(shape_data["order"])
-        ]
+        if type(category) == int:
+            shape_data = copy.deepcopy(self.generateShapeData(category, option))
+            self.points = [(x + self.x, y + self.y, z + self.z) for x, y, z in shape_data["points"]]
+            self.faces = [
+                FaceObject(index, self.points, face)
+                for index, face in enumerate(shape_data["order"])
+            ]
+        else:
+            points, order = category, option
+            self.points = [(x + self.x, y + self.y, z + self.z) for x, y, z in points]
+            for index, face in enumerate(order):
+                self.faces.append(FaceObject(index, self.points, face))
+            print(self.faces)
         self.moveCenter(pos)
 
         ##################
         self.center2D = None
         self.faces2D = copy.deepcopy(self.faces)
+
 
     def __repr__(self):
         return f"center at {self.x, self.y, self.z} --- and points at {self.points}"
@@ -85,7 +93,6 @@ class ShapeObject:
         self.faces = new_faces        
 
 #um so, if its a full 3d shape, then every single edge of any face should be adjacent to some other face
-#
     def flattenTo2D(self):
         stack = copy.deepcopy(self.faces)
         self.faces2D = []
@@ -103,49 +110,31 @@ class ShapeObject:
         self.center2D = center
         self.faces2D.append(center)
 
-    def bloom(self, center, stack):
-        # depending on the number of edges you have, you would have pointers to the "next node" of the 
+    def bloom (self, center, stack):
         if len(stack) == 0:
             return
         if center == None:
             return
-        print()
-        print(" center: ", center)
-        edgePairs = center.getEdges()
-        adjacencies = [None] * len(edgePairs)
+        
+        for i in range(len(center.edges)):
+            #current edge is a tuple
+            currentEdge = center.edges[i]
+            for compareFace in stack:
+                if currentEdge in compareFace.edges or self.reverseTuple(currentEdge) in compareFace.edges:
+                    center.adjacencies[i] = compareFace
+                    self.faces2D.append(compareFace)
+                    hinge2DA, hinge2DB = (center.used2D[center.order.index(currentEdge[0])], center.used2D[center.order.index(currentEdge[1])])
+                    hinge3DA, hinge3DB = (self.points[currentEdge[0]], self.points[currentEdge[1]])
+                    print("hinges A - ", hinge2DA, " | B - ", hinge2DB)
+                    for used2Dindex, order3D in enumerate(compareFace.order):
+                        C3d = self.points[order3D]
+                        C2d = self.constructFlattenedHinge(hinge3DA, hinge3DB, C3d, hinge2DA, hinge2DB)
+                        compareFace.used2D[used2Dindex] = C2d
+                    stack.pop(i)
+                    i -= 1
 
-        # Process each face in the stack
-        i = 0
-        while i < len(stack):
-            face = stack[i]
-            print(face)
-            # this shared thing is a dictionary that gives the shared index of the edge 
-            # key = index of edge in center, value = index of edge in the other face
-            center.getSharedEdges(face)
-            shared_edge = center.getSharedEdges(face)
-            print("SHARED EDGES", shared_edge)
-            if len (shared_edge) > 0:
-                # we want to build a parallel list that corresponds another face object with this particular edge of the face.
-                for centerEidx, pair1 in shared_edge:
-                    print(centerEidx, pair1)
-                    adjacencies[centerEidx] = face 
-                    a = center.used2D[center.order.index(pair1[0])] 
-                    b = center.used2D[center.order.index(pair1[1])] 
-                    # we need to look through the list. the shared edge is the hinge - WE CAN ASSUME THAT THE 
-                    #NEEDED PAIRS ALREADY EXIST IN THE DICTIONARY BECAUSE IT'S SHARED WITH THE CENTER, AND ALL
-                    #POINTS IN THE CENTER IS DEFINED ALREADY
-                    for j, order in enumerate(face.order):
-                        c = face.points[order]
-                        bigC = self.constructFlattenedHinge(face.points[pair1[0]], face.points[pair1[1]],c,a,b)
-                        face.used2D[j] = bigC
-
-                stack.pop(i)  
-            else:
-                i += 1  
-        center.adjacencies = adjacencies
-        for face in adjacencies:
-            self.bloom(face, stack)  
-            self.faces2D.append(face)
+    def reverseTuple(self, tup):
+        return (tup[1], tup[0])
 
     def generateShapeData(self, category, option):
 
@@ -286,23 +275,37 @@ class ShapeObject:
 
         return angle_CAB
 
-    def constructFlattenedHinge(self,A,B,C, a, b):
+    def constructFlattenedHinge(self,hinge3DA, hinge3DB, C3d, hinge2DA, hinge2DB):
         """
         precondition: ABC are all 3D coordinates, hinge (2d coordinates) is a,b which is the hinge you want to base C off of
         """
-        if C == A:
-            return a
-        if C == B:
-            return b
+        if C3d == hinge3DA:
+            return hinge2DA
+        if C3d == hinge3DB:
+            return hinge2DB
         #1) calculate distance from A to C
-        distance = self.calculate_3d_distance(A,C)
+        distance = self.calculate_3d_distance(hinge3DA,C3d)
+        directions = [1,1]
+        if hinge2DA[0] < hinge2DB[0]:
+            #>>>>>>>> going right
+            directions[0] = -1
+        elif hinge2DA[0] == hinge2DB[0]:
+            #>>>>>>>> going right
+            directions[0] = 0
+        if hinge2DA[1] < hinge2DB[1]:
+            #>>>>>>>> going right
+            directions[1] = -1
         #2) theta CAB
-        theta = self.calculate_angle_CAB(A,B,C)
+        theta = self.calculate_angle_CAB(hinge3DA, hinge3DB, C3d)
+        print("\t\ttheta",theta*180/math.pi)
         #3) construct the new 2D point from A with distance
-        x = round(distance * math.cos(theta)+a[0])
-        y = round(distance * math.sin(theta)+a[1])
-        print(x,y)
-        return (x,y)
+        print((distance * math.cos(theta),directions[0]*hinge2DA[0]))
+        print((distance * math.sin(theta),directions[1]*hinge2DA[1]))
+        x1 = round(distance * math.cos(theta)+directions[0]*hinge2DA[0])
+        y1 = round(distance * math.sin(theta)+directions[1]*hinge2DA[1])
+        print("\t\t\tc2d", x1,y1 )
+        return (x1,y1)
+    
 
     def constructFlattenedC(self,A,B,C):
         """
@@ -315,7 +318,6 @@ class ShapeObject:
         #1) calculate distance from A to C
         distance = self.calculate_3d_distance(A,C)
         #2) theta CAB
-        
         theta = self.calculate_angle_CAB(A,B,C)
         #3) construct the new 2D point from A with distance
         x = round(distance * math.cos(theta))
